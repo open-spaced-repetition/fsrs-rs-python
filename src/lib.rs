@@ -8,7 +8,7 @@ impl FSRS {
     pub fn new() -> Self {
         Self(fsrs::FSRS::new(Some(&[])).unwrap())
     }
-    #[pyo3(signature=(current_memory_state,desired_retention,days_elapsed ))]
+    #[pyo3(signature=(current_memory_state,desired_retention,days_elapsed))]
     pub fn next_states(
         &self,
         current_memory_state: Option<MemoryState>,
