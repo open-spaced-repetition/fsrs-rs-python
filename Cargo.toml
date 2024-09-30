@@ -1,0 +1,13 @@
+[package]
+name = "fsrs-rs-python"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[lib]
+name = "fsrs_rs_python"
+crate-type = ["cdylib"]
+
+[dependencies]
+fsrs = "1.2.4"
+pyo3 = "0.22.0"
