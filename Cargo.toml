@@ -10,4 +10,4 @@ crate-type = ["cdylib"]
 
 [dependencies]
 fsrs = "1.2.4"
-pyo3 = "0.22.0"
+pyo3 = "0.22.4"
