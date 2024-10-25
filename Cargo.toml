@@ -9,5 +9,5 @@ name = "fsrs_rs_python"
 crate-type = ["cdylib"]
 
 [dependencies]
-fsrs = "1.2.4"
+fsrs = "1.4.0"
 pyo3 = "0.22.4"
