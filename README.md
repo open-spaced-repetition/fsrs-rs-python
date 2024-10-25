@@ -6,11 +6,11 @@ Python bindings for fsrs-rs, use burn-rs, instead of pytorch.
 
 ## Usage
 
-see [example.py](./example.py)
+see [examples](./examples)
 
 ## Development
 
 ```bash
 maturin develop
-python example.py
+find examples/ -exec python {} \;
 ```

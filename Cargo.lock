@@ -928,15 +928,16 @@ dependencies = [
 
 [[package]]
 name = "fsrs"
-version = "1.2.4"
+version = "1.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c6c3e9d1ab337e63735c4ceff913b9818eeac054d8dc17ca1b259195a7fbfb16"
+checksum = "af9aeb02d6df44c13450f17da65ea149ccc52e253d4fb32df31d111a025189da"
 dependencies = [
  "burn",
  "itertools",
  "log",
  "ndarray",
  "ndarray-rand",
+ "priority-queue",
  "rand",
  "rayon",
  "serde",
@@ -1898,6 +1899,17 @@ name = "presser"
 version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e8cf8e6a8aa66ce33f63993ffc4ea4271eb5b0530a9002db8455ea6050c77bfa"
+
+[[package]]
+name = "priority-queue"
+version = "2.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "714c75db297bc88a63783ffc6ab9f830698a6705aa0201416931759ef4c8183d"
+dependencies = [
+ "autocfg",
+ "equivalent",
+ "indexmap",
+]
 
 [[package]]
 name = "proc-macro2"
