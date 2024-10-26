@@ -2,6 +2,10 @@
 
 Python bindings for fsrs-rs, use burn-rs, instead of pytorch.
 
+```
+pip install fsrs-rs-python
+```
+
 ---
 
 ## Usage
