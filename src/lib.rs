@@ -30,6 +30,10 @@ impl FSRS {
             .compute_parameters(train_set.iter().map(|x| x.0.clone()).collect(), None)
             .unwrap_or_default()
     }
+    pub fn benchmark(&self, train_set: Vec<FSRSItem>) -> Vec<f32> {
+        self.0
+            .benchmark(train_set.iter().map(|x| x.0.clone()).collect())
+    }
     pub fn memory_state_from_sm2(
         &self,
         ease_factor: f32,
