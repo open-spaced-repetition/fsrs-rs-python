@@ -8,6 +8,9 @@ edition = "2021"
 name = "fsrs_rs_python"
 crate-type = ["cdylib"]
 
+[dependencies.fsrs]
+version = "1.4.1"
+# path = "../fsrs-rs"
+
 [dependencies]
-fsrs = "1.4.0"
 pyo3 = "0.22.4"
