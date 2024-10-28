@@ -928,9 +928,9 @@ dependencies = [
 
 [[package]]
 name = "fsrs"
-version = "1.4.0"
+version = "1.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "af9aeb02d6df44c13450f17da65ea149ccc52e253d4fb32df31d111a025189da"
+checksum = "3ce9c7f18af7f0f3c495a4f1e3693519ec200bed669927613e93decfaa565c7a"
 dependencies = [
  "burn",
  "itertools",
