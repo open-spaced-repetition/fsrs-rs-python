@@ -928,9 +928,9 @@ dependencies = [
 
 [[package]]
 name = "fsrs"
-version = "1.4.1"
+version = "1.4.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3ce9c7f18af7f0f3c495a4f1e3693519ec200bed669927613e93decfaa565c7a"
+checksum = "de570dbbc7b95c5cf5f77c905b3b54b16352c1b48694e6761d716fb92b8db67c"
 dependencies = [
  "burn",
  "itertools",
@@ -947,7 +947,7 @@ dependencies = [
 
 [[package]]
 name = "fsrs-rs-python"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "fsrs",
  "pyo3",
