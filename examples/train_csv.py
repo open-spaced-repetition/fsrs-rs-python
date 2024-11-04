@@ -12,7 +12,7 @@ def main():
     with open("./revlog.csv", "r") as file:
         records = list(csv.DictReader(file))
 
-    print(f"revlogs.len() = {len(records)}")
+    print(f"{len(records) = }")
     start_time = time.time()
 
     # Group by card_id
