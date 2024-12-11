@@ -1,5 +1,5 @@
 use pyo3::prelude::*;
-#[pyclass(module = "fsrs_rs_python")]
+#[pyclass(module = "fsrs_rs_python", unsendable)]
 #[derive(Debug, Clone)]
 pub struct FSRS(fsrs::FSRS);
 #[pymethods]
@@ -55,7 +55,7 @@ impl FSRS {
         )
     }
 }
-#[pyclass(module = "fsrs_rs_python")]
+#[pyclass(module = "fsrs_rs_python", unsendable)]
 #[derive(Debug, Clone)]
 pub struct MemoryState(fsrs::MemoryState);
 
@@ -73,7 +73,7 @@ impl MemoryState {
     }
 }
 
-#[pyclass(module = "fsrs_rs_python")]
+#[pyclass(module = "fsrs_rs_python", unsendable)]
 #[derive(Debug, Clone)]
 pub struct NextStates(fsrs::NextStates);
 #[pymethods]
@@ -96,7 +96,7 @@ impl NextStates {
     }
 }
 
-#[pyclass(module = "fsrs_rs_python")]
+#[pyclass(module = "fsrs_rs_python", unsendable)]
 #[derive(Debug, Clone)]
 pub struct ItemState(fsrs::ItemState);
 
@@ -115,7 +115,7 @@ impl ItemState {
     }
 }
 
-#[pyclass(module = "fsrs_rs_python")]
+#[pyclass(module = "fsrs_rs_python", unsendable)]
 #[derive(Debug, Clone)]
 pub struct FSRSItem(fsrs::FSRSItem);
 
@@ -152,7 +152,7 @@ impl FSRSItem {
     }
 }
 
-#[pyclass(module = "fsrs_rs_python")]
+#[pyclass(module = "fsrs_rs_python", unsendable)]
 #[derive(Debug, Clone)]
 pub struct FSRSReview(fsrs::FSRSReview);
 
