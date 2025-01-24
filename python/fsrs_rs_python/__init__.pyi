@@ -14,6 +14,9 @@ class FSRS:
     def memory_state_from_sm2(
         self, ease_factor: float, interval: float, sm2_retention: float
     ) -> MemoryState: ...
+    def memory_state(
+        self, item: FSRSItem, starting_state: Optional[MemoryState] = None
+    ) -> MemoryState: ...
 
 class FSRSItem:
     ...

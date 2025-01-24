@@ -21,9 +21,7 @@ def main():
 
     # Convert to FSRSItems
     fsrs_items = [
-        item
-        for items in map(convert_to_fsrs_item, reviews_by_card.values())
-        for item in items
+        item for items in map(convert_to_fsrs_item, reviews_by_card.values()) for item in items
     ]
     print(f"{len(fsrs_items) = }")
 
