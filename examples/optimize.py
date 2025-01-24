@@ -1,7 +1,8 @@
 from datetime import date
-from itertools import cycle, islice, chain
+from itertools import chain, cycle, islice
 from typing import List, Tuple
-from fsrs_rs_python import FSRS, FSRSItem, FSRSReview, DEFAULT_PARAMETERS
+
+from fsrs_rs_python import DEFAULT_PARAMETERS, FSRS, FSRSItem, FSRSReview
 
 
 def main():
@@ -170,11 +171,11 @@ def convert_to_fsrs_item(history: List[Tuple[date, int]]) -> List[FSRSItem]:
     reviews: List[FSRSReview] = []
     last_date = history[0][0]
     items: List[FSRSItem] = []
-    for date, rating in history:
-        delta_t = (date - last_date).days
+    for date_, rating in history:
+        delta_t = (date_ - last_date).days
         reviews.append(FSRSReview(rating=rating, delta_t=delta_t))
         items.append(FSRSItem(reviews=reviews.copy()))
-        last_date = date
+        last_date = date_
 
     return [x for x in items if x.long_term_review_cnt() > 0]
 

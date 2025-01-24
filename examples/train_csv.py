@@ -1,7 +1,8 @@
 import csv
 import time
-from datetime import datetime, timezone, timedelta
-from typing import List, Dict, Tuple, Any
+from datetime import datetime, timedelta, timezone
+from typing import Dict, List, Tuple
+
 from fsrs_rs_python import FSRS, FSRSItem, FSRSReview
 
 
@@ -20,9 +21,7 @@ def main():
 
     # Convert to FSRSItems
     fsrs_items = [
-        item
-        for items in map(convert_to_fsrs_item, reviews_by_card.values())
-        for item in items
+        item for items in map(convert_to_fsrs_item, reviews_by_card.values()) for item in items
     ]
     print(f"{len(fsrs_items) = }")
 

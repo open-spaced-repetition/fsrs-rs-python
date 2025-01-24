@@ -1,6 +1,7 @@
 import datetime
 from typing import Optional
-from fsrs_rs_python import FSRS, MemoryState, DEFAULT_PARAMETERS
+
+from fsrs_rs_python import DEFAULT_PARAMETERS, FSRS, MemoryState
 
 
 class Card:
@@ -48,9 +49,7 @@ def schedule_existing_card():
     # Create an existing card with memory state and last review date
     card = Card()
     card.due = datetime.datetime.now(datetime.timezone.utc)
-    card.last_review = datetime.datetime.now(
-        datetime.timezone.utc
-    ) - datetime.timedelta(days=7)
+    card.last_review = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(days=7)
     card.memory_state = MemoryState(stability=7.0, difficulty=5.0)
     card.scheduled_days = 7
 
@@ -61,9 +60,7 @@ def schedule_existing_card():
     fsrs = FSRS(parameters=DEFAULT_PARAMETERS)
 
     # Calculate the elapsed time since the last review
-    elapsed_days = (
-        datetime.datetime.now(datetime.timezone.utc) - card.last_review
-    ).days
+    elapsed_days = (datetime.datetime.now(datetime.timezone.utc) - card.last_review).days
 
     # Get next states for an existing card
     next_states = fsrs.next_states(card.memory_state, desired_retention, elapsed_days)
