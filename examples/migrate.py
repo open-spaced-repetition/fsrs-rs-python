@@ -1,4 +1,4 @@
-from fsrs_rs_python import FSRS, FSRSItem, FSRSReview, DEFAULT_PARAMETERS
+from fsrs_rs_python import DEFAULT_PARAMETERS, FSRS, FSRSItem, FSRSReview
 
 
 def migrate_with_full_history():

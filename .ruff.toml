@@ -1,5 +1,5 @@
 target-version = "py39"
-line-length = 88
+line-length = 100
 select = [
     "E",  # pycodestyle errors
     "W",  # pycodestyle warnings

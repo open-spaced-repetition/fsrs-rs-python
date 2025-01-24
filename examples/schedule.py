@@ -1,6 +1,7 @@
 import datetime
 from typing import Optional
-from fsrs_rs_python import FSRS, MemoryState, DEFAULT_PARAMETERS
+
+from fsrs_rs_python import DEFAULT_PARAMETERS, FSRS, MemoryState
 
 
 class Card:
