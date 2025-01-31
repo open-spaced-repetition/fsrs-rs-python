@@ -2,12 +2,12 @@ use std::sync::Mutex;
 
 use pyo3::prelude::*;
 #[pyclass(module = "fsrs_rs_python")]
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct FSRS(Mutex<fsrs::FSRS>);
 #[pymethods]
 impl FSRS {
     #[new]
-    pub fn new(parameters: &[f32]) -> Self {
+    pub fn new(parameters: Vec<f32>) -> Self {
         Self(fsrs::FSRS::new(Some(&parameters)).unwrap().into())
     }
     #[pyo3(signature=(current_memory_state,desired_retention,days_elapsed))]
@@ -29,14 +29,14 @@ impl FSRS {
                 .unwrap(),
         )
     }
-    pub fn compute_parameters(&self, train_set: &[FSRSItem]) -> Vec<f32> {
+    pub fn compute_parameters(&self, train_set: Vec<FSRSItem>) -> Vec<f32> {
         self.0
             .lock()
             .unwrap()
             .compute_parameters(train_set.iter().map(|x| x.0.clone()).collect(), None, true)
             .unwrap_or_default()
     }
-    pub fn benchmark(&self, train_set: &[FSRSItem]) -> Vec<f32> {
+    pub fn benchmark(&self, train_set: Vec<FSRSItem>) -> Vec<f32> {
         self.0
             .lock()
             .unwrap()
