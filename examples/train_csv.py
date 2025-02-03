@@ -2,15 +2,20 @@ import csv
 import time
 from datetime import datetime, timedelta, timezone
 from typing import Dict, List, Tuple
-
+import urllib.request
 from fsrs_rs_python import FSRS, FSRSItem, FSRSReview
+from pathlib import Path
 
 
 def main():
     # Read revlog.csv
-    # Please download from
-    # https://github.com/open-spaced-repetition/fsrs-rs/files/15046782/revlog.csv
-    with open("./revlog.csv", "r") as file:
+    p = Path(__file__).parent
+    if not (p / "revlog.csv").exists():
+        urllib.request.urlretrieve(
+            "https://github.com/open-spaced-repetition/fsrs-rs/files/15046782/revlog.csv",
+            (p / "revlog.csv"),
+        )
+    with (p / "revlog.csv").open("r") as file:
         records = list(csv.DictReader(file))
 
     print(f"{len(records) = }")
