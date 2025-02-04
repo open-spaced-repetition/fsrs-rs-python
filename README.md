@@ -12,9 +12,16 @@ pip install fsrs-rs-python
 
 see [examples](./examples)
 
-## Development
+## Online development
+
+go to <https://idx.google.com/import>
+
+## Local development
 
 ```bash
+maturin build
+python -m venv .venv
+# active it, then
 maturin develop
 find examples/ -exec python {} \;
 ```
