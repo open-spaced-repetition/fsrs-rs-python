@@ -1,6 +1,6 @@
 # FSRS-RS-Python
 
-Python bindings for fsrs-rs, use burn-rs, instead of pytorch.
+Python bindings for [fsrs-rs](https://github.com/open-spaced-repetition/fsrs-rs), use burn-rs, instead of pytorch.
 
 ```
 pip install fsrs-rs-python
