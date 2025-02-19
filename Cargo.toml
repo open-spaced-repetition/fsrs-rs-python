@@ -9,7 +9,7 @@ name = "fsrs_rs_python"
 crate-type = ["cdylib"]
 
 [dependencies.fsrs]
-version = "2.0.3"
+version = "2.0.4"
 # path = "../fsrs-rs"
 
 [dependencies]
