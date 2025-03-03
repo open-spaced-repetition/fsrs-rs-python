@@ -180,6 +180,7 @@ impl FSRSReview {
 }
 
 #[pyclass(module = "fsrs_rs_python")]
+#[allow(dead_code)]
 pub struct SimulationResult(fsrs::SimulationResult);
 
 #[pyclass(module = "fsrs_rs_python")]
