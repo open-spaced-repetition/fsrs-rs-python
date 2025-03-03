@@ -9,8 +9,10 @@ name = "fsrs_rs_python"
 crate-type = ["cdylib"]
 
 [dependencies.fsrs]
-version = "2.0.4"
-# path = "../fsrs-rs"
+# version = "2.0.4"
+# path = "../open-spaced-repetition/fsrs-rs"
+git = "https://github.com/Luc-Mcgrady/fsrs-optimizer-burn.git"
+branch = "simulation-result"
 
 [dependencies]
 pyo3 = "0.23.4"
