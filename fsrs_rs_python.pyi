@@ -42,9 +42,6 @@ class ItemState:
     interval: float
 
 class SimulationResult:
-    def __init__(self) -> None: ...
-
-    # Attributes (not properties)
     memorized_cnt_per_day: list[float]
     review_cnt_per_day: list[int]
     learn_cnt_per_day: list[int]
