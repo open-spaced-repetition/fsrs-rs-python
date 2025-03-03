@@ -180,8 +180,26 @@ impl FSRSReview {
 }
 
 #[pyclass(module = "fsrs_rs_python")]
-#[allow(dead_code)]
 pub struct SimulationResult(fsrs::SimulationResult);
+#[pymethods]
+impl SimulationResult {
+    #[getter]
+    pub fn memorized_cnt_per_day(&self) -> Vec<f32> {
+        self.0.memorized_cnt_per_day.clone()
+    }
+    #[getter]
+    pub fn review_cnt_per_day(&self) -> Vec<usize> {
+        self.0.review_cnt_per_day.clone()
+    }
+    #[getter]
+    pub fn learn_cnt_per_day(&self) -> Vec<usize> {
+        self.0.learn_cnt_per_day.clone()
+    }
+    #[getter]
+    pub fn cost_per_day(&self) -> Vec<f32> {
+        self.0.cost_per_day.clone()
+    }
+}
 
 #[pyclass(module = "fsrs_rs_python")]
 #[derive(Default)]
