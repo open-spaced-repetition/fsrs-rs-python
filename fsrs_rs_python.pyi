@@ -51,29 +51,8 @@ class SimulationResult:
     learn_cnt_per_day: list[int]
     cost_per_day: list[float]
 
+@dataclass
 class SimulatorConfig:
-    def __init__(
-        self,
-        deck_size: int,
-        learn_span: int,
-        max_cost_perday: float,
-        max_ivl: float,
-        learn_costs: list[float],  # List of 4 floats
-        review_costs: list[float],  # List of 4 floats
-        first_rating_prob: list[float],  # List of 4 floats
-        review_rating_prob: list[float],  # List of 3 floats
-        first_rating_offsets: list[float],  # List of 4 floats
-        first_session_lens: list[float],  # List of 4 floats
-        forget_rating_offset: float,
-        forget_session_len: float,
-        loss_aversion: float,
-        learn_limit: int,
-        review_limit: int,
-        new_cards_ignore_review_limit: bool,
-        suspend_after_lapses: Optional[int] = None,
-    ) -> None: ...
-
-    # Attributes (not properties)
     deck_size: int
     learn_span: int
     max_cost_perday: float
@@ -90,8 +69,7 @@ class SimulatorConfig:
     learn_limit: int
     review_limit: int
     new_cards_ignore_review_limit: bool
-    suspend_after_lapses: Optional[int]
-    ...
+    suspend_after_lapses: Optional[int] = None
 
 def simulate(
     w: list[float],  # List of floats
