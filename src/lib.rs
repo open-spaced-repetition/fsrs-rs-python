@@ -1,3 +1,6 @@
+mod simulator_config;
+use simulator_config::SimulatorConfig;
+
 use std::sync::Mutex;
 
 use pyo3::prelude::*;
@@ -179,6 +182,46 @@ impl FSRSReview {
     }
 }
 
+#[pyclass(module = "fsrs_rs_python")]
+pub struct SimulationResult(fsrs::SimulationResult);
+#[pymethods]
+impl SimulationResult {
+    #[getter]
+    pub fn memorized_cnt_per_day(&self) -> Vec<f32> {
+        self.0.memorized_cnt_per_day.clone()
+    }
+    #[getter]
+    pub fn review_cnt_per_day(&self) -> Vec<usize> {
+        self.0.review_cnt_per_day.clone()
+    }
+    #[getter]
+    pub fn learn_cnt_per_day(&self) -> Vec<usize> {
+        self.0.learn_cnt_per_day.clone()
+    }
+    #[getter]
+    pub fn cost_per_day(&self) -> Vec<f32> {
+        self.0.cost_per_day.clone()
+    }
+}
+
+#[pyfunction]
+#[pyo3(signature=(w,desired_retention,config=None,seed=None))]
+fn simulate(
+    w: Vec<f32>,
+    desired_retention: f32,
+    config: Option<&SimulatorConfig>,
+    seed: Option<u64>,
+) -> SimulationResult {
+    let default_config = SimulatorConfig::default();
+    let config = config.unwrap_or(&default_config);
+    SimulationResult(fsrs::simulate(&config.0, &w, desired_retention, seed, None).unwrap())
+}
+
+#[pyfunction]
+fn default_simulator_config() -> SimulatorConfig {
+    SimulatorConfig::default()
+}
+
 /// A Python module implemented in Rust.
 #[pymodule]
 fn fsrs_rs_python(m: &Bound<'_, PyModule>) -> PyResult<()> {
@@ -188,6 +231,8 @@ fn fsrs_rs_python(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<ItemState>()?;
     m.add_class::<FSRSItem>()?;
     m.add_class::<FSRSReview>()?;
+    m.add_function(wrap_pyfunction!(simulate, m)?)?;
+    m.add_function(wrap_pyfunction!(default_simulator_config, m)?)?;
     m.add(
         "DEFAULT_PARAMETERS",
         [
