@@ -1,7 +1,7 @@
 [package]
 name = "fsrs-rs-python"
 version = "0.8.0"
-edition = "2021"
+edition = "2024"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [lib]
@@ -10,9 +10,8 @@ crate-type = ["cdylib"]
 
 [dependencies.fsrs]
 # version = "2.0.4"
-# path = "../open-spaced-repetition/fsrs-rs"
-git = "https://github.com/Luc-Mcgrady/fsrs-optimizer-burn.git"
-branch = "simulation-result"
+# path = "../fsrs-rs"
+git = "https://github.com/open-spaced-repetition/fsrs-rs.git"
 
 [dependencies]
 pyo3 = "0.23.4"
