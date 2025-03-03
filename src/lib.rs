@@ -1,3 +1,6 @@
+mod simulator_config;
+use simulator_config::SimulatorConfig;
+
 use std::sync::Mutex;
 
 use pyo3::prelude::*;
@@ -201,9 +204,6 @@ impl SimulationResult {
     }
 }
 
-#[pyclass(module = "fsrs_rs_python")]
-#[derive(Default)]
-pub struct SimulatorConfig(fsrs::SimulatorConfig);
 #[pyfunction]
 #[pyo3(signature=(w,desired_retention,config=None,seed=None))]
 fn simulate(
@@ -217,6 +217,11 @@ fn simulate(
     SimulationResult(fsrs::simulate(&config.0, &w, desired_retention, seed, None).unwrap())
 }
 
+#[pyfunction]
+fn default_simulator_config() -> SimulatorConfig {
+    SimulatorConfig::default()
+}
+
 /// A Python module implemented in Rust.
 #[pymodule]
 fn fsrs_rs_python(m: &Bound<'_, PyModule>) -> PyResult<()> {
@@ -227,6 +232,7 @@ fn fsrs_rs_python(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<FSRSItem>()?;
     m.add_class::<FSRSReview>()?;
     m.add_function(wrap_pyfunction!(simulate, m)?)?;
+    m.add_function(wrap_pyfunction!(default_simulator_config, m)?)?;
     m.add(
         "DEFAULT_PARAMETERS",
         [
