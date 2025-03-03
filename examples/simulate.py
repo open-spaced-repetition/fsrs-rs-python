@@ -9,8 +9,7 @@ if __name__ == "__main__":
 
     print("Day,\tMemoriszed,\tReview Count,\tLearn Count,\tCost Per Day")
     print(
-        "\n".join(
-            [
+            *(
                 ",\t".join(map(lambda a: f"{a:.2f}", [i, *t]))
                 for i, t in enumerate(
                     zip(
@@ -20,6 +19,5 @@ if __name__ == "__main__":
                         simulation_result.cost_per_day,
                     )
                 )
-            ]
+            ), sep='\n'
         )
-    )
