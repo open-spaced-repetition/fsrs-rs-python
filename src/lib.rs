@@ -179,6 +179,25 @@ impl FSRSReview {
     }
 }
 
+#[pyclass(module = "fsrs_rs_python")]
+pub struct SimulationResult(fsrs::SimulationResult);
+
+#[pyclass(module = "fsrs_rs_python")]
+#[derive(Default)]
+pub struct SimulatorConfig(fsrs::SimulatorConfig);
+#[pyfunction]
+#[pyo3(signature=(w,desired_retention,config=None,seed=None))]
+fn simulate(
+    w: Vec<f32>,
+    desired_retention: f32,
+    config: Option<&SimulatorConfig>,
+    seed: Option<u64>,
+) -> SimulationResult {
+    let default_config = SimulatorConfig::default();
+    let config = config.unwrap_or(&default_config);
+    SimulationResult(fsrs::simulate(&config.0, &w, desired_retention, seed, None).unwrap())
+}
+
 /// A Python module implemented in Rust.
 #[pymodule]
 fn fsrs_rs_python(m: &Bound<'_, PyModule>) -> PyResult<()> {
@@ -188,6 +207,7 @@ fn fsrs_rs_python(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<ItemState>()?;
     m.add_class::<FSRSItem>()?;
     m.add_class::<FSRSReview>()?;
+    m.add_function(wrap_pyfunction!(simulate, m)?)?;
     m.add(
         "DEFAULT_PARAMETERS",
         [
