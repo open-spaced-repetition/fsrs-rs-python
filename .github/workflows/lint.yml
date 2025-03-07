@@ -25,8 +25,9 @@ jobs:
           python -m pip install --upgrade pip
           pip install mypy ruff
 
+      # Update output format to enable automatic inline annotations.
       - name: Run Ruff
-        run: ruff check .
+        run: ruff check --output-format=github . && ruff format --check
 
       - name: Run Mypy
         run: mypy .
