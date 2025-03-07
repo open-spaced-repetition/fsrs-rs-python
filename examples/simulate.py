@@ -9,15 +9,16 @@ if __name__ == "__main__":
 
     print("Day,\tMemoriszed,\tReview Count,\tLearn Count,\tCost Per Day")
     print(
-            *(
-                ",\t".join(f"{a:.2f}" for a in [i, *t])
-                for i, t in enumerate(
-                    zip(
-                        simulation_result.memorized_cnt_per_day,
-                        simulation_result.review_cnt_per_day,
-                        simulation_result.learn_cnt_per_day,
-                        simulation_result.cost_per_day,
-                    )
+        *(
+            ",\t".join(f"{a:.2f}" for a in [i, *t])
+            for i, t in enumerate(
+                zip(
+                    simulation_result.memorized_cnt_per_day,
+                    simulation_result.review_cnt_per_day,
+                    simulation_result.learn_cnt_per_day,
+                    simulation_result.cost_per_day,
                 )
-            ), sep='\n'
-        )
+            )
+        ),
+        sep="\n",
+    )
