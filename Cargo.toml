@@ -12,7 +12,7 @@ crate-type = ["cdylib"]
 # version = "2.0.4"
 # path = "../fsrs-rs"
 git = "https://github.com/open-spaced-repetition/fsrs-rs.git"
-rev = "222a93e954ff912abaf36878b96ebeeb9666e16b"
+rev = "932bb7af282f918bc5b997f74ece77942eb89b96"
 
 [dependencies]
 pyo3 = "0.24.0"

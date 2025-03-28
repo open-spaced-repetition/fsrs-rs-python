@@ -1,4 +1,5 @@
 mod simulator_config;
+use fsrs::ComputeParametersInput;
 use simulator_config::SimulatorConfig;
 
 use std::sync::Mutex;
@@ -36,14 +37,21 @@ impl FSRS {
         self.0
             .lock()
             .unwrap()
-            .compute_parameters(train_set.iter().map(|x| x.0.clone()).collect(), None, true)
+            .compute_parameters(ComputeParametersInput {
+                train_set: train_set.iter().map(|x| x.0.clone()).collect(),
+                progress: None,
+                enable_short_term: true,
+                num_relearning_steps: None,
+            })
             .unwrap_or_default()
     }
     pub fn benchmark(&self, train_set: Vec<FSRSItem>) -> Vec<f32> {
-        self.0
-            .lock()
-            .unwrap()
-            .benchmark(train_set.iter().map(|x| x.0.clone()).collect(), true)
+        self.0.lock().unwrap().benchmark(ComputeParametersInput {
+            train_set: train_set.iter().map(|x| x.0.clone()).collect(),
+            progress: None,
+            enable_short_term: true,
+            num_relearning_steps: None,
+        })
     }
     pub fn memory_state_from_sm2(
         &self,
