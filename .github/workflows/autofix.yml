@@ -8,7 +8,7 @@ permissions:
   contents: read
 
 env:
-  rust_clippy: 1.65  # MSRV
+  rust_clippy: stable  # MSRV
 
 jobs:
   autofix:
@@ -16,14 +16,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # Use uv to ensure we have the same ruff version in CI and locally.
-      - uses: astral-sh/setup-uv@22695119d769bdb6f7032ad67b9bca0ef8c4a174
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
         with:
-          version: "0.4.20"
+          enable-cache: true
       # Fix lint errors
-      - run: uv run ruff check --fix-only .
+      - run: uvx ruff check --fix-only .
       # Format code
-      - run: uv run ruff format .
+      - run: uvx run ruff format .
 
       - uses: actions/cache@v4
         with:
