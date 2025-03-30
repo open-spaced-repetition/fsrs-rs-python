@@ -127,7 +127,7 @@ pub struct ItemState(fsrs::ItemState);
 impl ItemState {
     #[getter]
     pub fn memory(&self) -> MemoryState {
-        MemoryState(self.0.memory.clone())
+        MemoryState(self.0.memory)
     }
     #[getter]
     pub fn interval(&self) -> f32 {
@@ -152,11 +152,7 @@ impl FSRSItem {
     }
     #[getter]
     pub fn get_reviews(&self) -> Vec<FSRSReview> {
-        self.0
-            .reviews
-            .iter()
-            .map(|x| FSRSReview(x.clone()))
-            .collect()
+        self.0.reviews.iter().map(|x| FSRSReview(*x)).collect()
     }
     #[setter]
     pub fn set_reviews(&mut self, other: Vec<FSRSReview>) {
@@ -171,7 +167,7 @@ impl FSRSItem {
             .count()
     }
     pub fn __repr__(&self) -> String {
-        return format!("{:?}", self.0);
+        format!("{:?}", self.0)
     }
 }
 
@@ -186,7 +182,7 @@ impl FSRSReview {
         Self(fsrs::FSRSReview { rating, delta_t })
     }
     pub fn __repr__(&self) -> String {
-        return format!("{:?}", self.0);
+        format!("{:?}", self.0)
     }
 }
 
