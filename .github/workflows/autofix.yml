@@ -20,10 +20,8 @@ jobs:
         uses: astral-sh/setup-uv@v5
         with:
           enable-cache: true
-      # Fix lint errors
       - run: uvx ruff check --fix-only .
-      # Format code
-      - run: uvx run ruff format .
+      - run: uvx ruff format .
 
       - uses: actions/cache@v4
         with:
