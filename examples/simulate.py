@@ -7,7 +7,9 @@ if __name__ == "__main__":
 
     simulation_result = simulate(DEFAULT_PARAMETERS, 0.9, config)
 
-    print("Day,\tMemoriszed,\tReview Count,\tLearn Count,\tCost Per Day")
+    print(
+        "Day,\tMemoriszed,\tReview Count,\tLearn Count,\tCost Per Day\tCorrect Per Day"
+    )
     print(
         *(
             ",\t".join(f"{a:.2f}" for a in [i, *t])
@@ -17,6 +19,7 @@ if __name__ == "__main__":
                     simulation_result.review_cnt_per_day,
                     simulation_result.learn_cnt_per_day,
                     simulation_result.cost_per_day,
+                    simulation_result.correct_cnt_per_day,
                 )
             )
         ),

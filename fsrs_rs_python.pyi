@@ -47,6 +47,7 @@ class SimulationResult:
     review_cnt_per_day: list[int]
     learn_cnt_per_day: list[int]
     cost_per_day: list[float]
+    correct_cnt_per_day: list[int]
 
 @dataclass
 class SimulatorConfig:
