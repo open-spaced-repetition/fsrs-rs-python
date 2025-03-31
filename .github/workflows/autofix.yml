@@ -36,7 +36,7 @@ jobs:
       - run: rustup toolchain install ${{ env.rust_clippy }} --profile minimal --component rustfmt --component clippy
       - run: rustup default ${{ env.rust_clippy }}
 
-      - run: cargo clippy --fix --workspace
+      - run: cargo clippy --fix --workspace --allow-dirty
       - run: cargo fmt --all
 
 
