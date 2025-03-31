@@ -206,6 +206,10 @@ impl SimulationResult {
     pub fn cost_per_day(&self) -> Vec<f32> {
         self.0.cost_per_day.clone()
     }
+    #[getter]
+    pub fn correct_cnt_per_day(&self) -> Vec<usize> {
+        self.0.correct_cnt_per_day.clone()
+    }
 }
 
 #[pyfunction]
