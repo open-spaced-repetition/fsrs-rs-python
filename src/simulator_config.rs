@@ -8,24 +8,22 @@ pub struct SimulatorConfig(pub fsrs::SimulatorConfig);
 impl SimulatorConfig {
     // Constructor for the wrapper struct
     #[new]
-    #[pyo3(signature = (deck_size, learn_span, max_cost_perday, max_ivl, learn_costs, review_costs, first_rating_prob, review_rating_prob, first_rating_offsets, first_session_lens, forget_rating_offset, forget_session_len, loss_aversion, learn_limit, review_limit, new_cards_ignore_review_limit, suspend_after_lapses=None))]
+    #[pyo3(signature = (deck_size, learn_span, max_cost_perday, max_ivl, first_rating_prob, review_rating_prob, learn_limit, review_limit, new_cards_ignore_review_limit, learning_step_transitions, relearning_step_transitions, state_rating_costs, learning_step_count, relearning_step_count, suspend_after_lapses=None))]
     pub fn new(
         deck_size: usize,
         learn_span: usize,
         max_cost_perday: f32,
         max_ivl: f32,
-        learn_costs: [f32; 4],
-        review_costs: [f32; 4],
         first_rating_prob: [f32; 4],
         review_rating_prob: [f32; 3],
-        first_rating_offsets: [f32; 4],
-        first_session_lens: [f32; 4],
-        forget_rating_offset: f32,
-        forget_session_len: f32,
-        loss_aversion: f32,
         learn_limit: usize,
         review_limit: usize,
         new_cards_ignore_review_limit: bool,
+        learning_step_transitions: [[f32; 4]; 3],
+        relearning_step_transitions: [[f32; 4]; 3],
+        state_rating_costs: [[f32; 4]; 3],
+        learning_step_count: usize,
+        relearning_step_count: usize,
         suspend_after_lapses: Option<u32>,
     ) -> Self {
         Self(fsrs::SimulatorConfig {
@@ -33,21 +31,19 @@ impl SimulatorConfig {
             learn_span,
             max_cost_perday,
             max_ivl,
-            learn_costs,
-            review_costs,
             first_rating_prob,
             review_rating_prob,
-            first_rating_offsets,
-            first_session_lens,
-            forget_rating_offset,
-            forget_session_len,
-            loss_aversion,
             learn_limit,
             review_limit,
             new_cards_ignore_review_limit,
             suspend_after_lapses,
             post_scheduling_fn: None,
             review_priority_fn: None,
+            learning_step_transitions,
+            relearning_step_transitions,
+            state_rating_costs,
+            learning_step_count,
+            relearning_step_count,
         })
     }
 
@@ -73,16 +69,6 @@ impl SimulatorConfig {
     }
 
     #[getter]
-    pub fn learn_costs(&self) -> [f32; 4] {
-        self.0.learn_costs
-    }
-
-    #[getter]
-    pub fn review_costs(&self) -> [f32; 4] {
-        self.0.review_costs
-    }
-
-    #[getter]
     pub fn first_rating_prob(&self) -> [f32; 4] {
         self.0.first_rating_prob
     }
@@ -90,31 +76,6 @@ impl SimulatorConfig {
     #[getter]
     pub fn review_rating_prob(&self) -> [f32; 3] {
         self.0.review_rating_prob
-    }
-
-    #[getter]
-    pub fn first_rating_offsets(&self) -> [f32; 4] {
-        self.0.first_rating_offsets
-    }
-
-    #[getter]
-    pub fn first_session_lens(&self) -> [f32; 4] {
-        self.0.first_session_lens
-    }
-
-    #[getter]
-    pub fn forget_rating_offset(&self) -> f32 {
-        self.0.forget_rating_offset
-    }
-
-    #[getter]
-    pub fn forget_session_len(&self) -> f32 {
-        self.0.forget_session_len
-    }
-
-    #[getter]
-    pub fn loss_aversion(&self) -> f32 {
-        self.0.loss_aversion
     }
 
     #[getter]
@@ -159,16 +120,6 @@ impl SimulatorConfig {
     }
 
     #[setter]
-    pub fn set_learn_costs(&mut self, value: [f32; 4]) {
-        self.0.learn_costs = value;
-    }
-
-    #[setter]
-    pub fn set_review_costs(&mut self, value: [f32; 4]) {
-        self.0.review_costs = value;
-    }
-
-    #[setter]
     pub fn set_first_rating_prob(&mut self, value: [f32; 4]) {
         self.0.first_rating_prob = value;
     }
@@ -176,31 +127,6 @@ impl SimulatorConfig {
     #[setter]
     pub fn set_review_rating_prob(&mut self, value: [f32; 3]) {
         self.0.review_rating_prob = value;
-    }
-
-    #[setter]
-    pub fn set_first_rating_offsets(&mut self, value: [f32; 4]) {
-        self.0.first_rating_offsets = value;
-    }
-
-    #[setter]
-    pub fn set_first_session_lens(&mut self, value: [f32; 4]) {
-        self.0.first_session_lens = value;
-    }
-
-    #[setter]
-    pub fn set_forget_rating_offset(&mut self, value: f32) {
-        self.0.forget_rating_offset = value;
-    }
-
-    #[setter]
-    pub fn set_forget_session_len(&mut self, value: f32) {
-        self.0.forget_session_len = value;
-    }
-
-    #[setter]
-    pub fn set_loss_aversion(&mut self, value: f32) {
-        self.0.loss_aversion = value;
     }
 
     #[setter]
