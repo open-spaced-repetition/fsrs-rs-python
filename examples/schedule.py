@@ -39,7 +39,7 @@ def schedule_new_card():
     card.memory_state = next_state.memory
     card.scheduled_days = interval
     card.last_review = datetime.datetime.now(datetime.timezone.utc)
-    if card.last_review is not None: # make ty happy
+    if card.last_review is not None:  # make ty happy
         card.due = card.last_review + datetime.timedelta(days=interval)
 
     print(f"Next review due: {card.due}")
@@ -80,7 +80,7 @@ def schedule_existing_card():
     card.memory_state = next_state.memory
     card.scheduled_days = interval
     card.last_review = datetime.datetime.now(datetime.timezone.utc)
-    if card.last_review is not None: # make ty happy
+    if card.last_review is not None:  # make ty happy
         card.due = card.last_review + datetime.timedelta(days=interval)
 
     print(f"Next review due: {card.due}")
