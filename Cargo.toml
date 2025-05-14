@@ -15,4 +15,4 @@ git = "https://github.com/open-spaced-repetition/fsrs-rs.git"
 rev = "9b2f2f72f68e7fbddf1aff3ca0271d6ee26702e6"
 
 [dependencies]
-pyo3 = "0.24.1"
+pyo3 = "0.24.2"
