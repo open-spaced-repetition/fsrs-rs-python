@@ -12,7 +12,8 @@ crate-type = ["cdylib"]
 # version = "2.0.4"
 # path = "../fsrs-rs"
 git = "https://github.com/open-spaced-repetition/fsrs-rs.git"
-rev = "932bb7af282f918bc5b997f74ece77942eb89b96"
+rev = "9b2f2f72f68e7fbddf1aff3ca0271d6ee26702e6"
 
 [dependencies]
 pyo3 = "0.24.2"
+macerator = "0.2.7" # https://github.com/wingertge/macerator/issues/4
