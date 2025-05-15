@@ -28,4 +28,4 @@ jobs:
         run: uvx ruff check --output-format=github . && uvx ruff format --check
 
       - name: Run Mypy
-        run: uvx mypy .
+        run: uv tool install ty && ty check .
