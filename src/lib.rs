@@ -91,6 +91,14 @@ impl MemoryState {
             difficulty,
         })
     }
+    #[getter]
+    pub fn stability(&self) -> f32 {
+        self.0.stability
+    }
+    #[getter]
+    pub fn difficulty(&self) -> f32 {
+        self.0.difficulty
+    }
     pub fn __repr__(&self) -> String {
         format!("{:?}", self.0)
     }
