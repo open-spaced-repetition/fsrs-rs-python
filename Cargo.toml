@@ -16,4 +16,4 @@ rev = "9b2f2f72f68e7fbddf1aff3ca0271d6ee26702e6"
 
 [dependencies]
 pyo3 = "0.25.0"
-macerator = "0.2.7" # https://github.com/wingertge/macerator/issues/4
+macerator = "0.2.8" # https://github.com/wingertge/macerator/issues/4

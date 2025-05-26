@@ -1822,22 +1822,24 @@ checksum = "13dc2df351e3202783a1fe0d44375f7295ffb4049267b0f3018346dc122a1d94"
 
 [[package]]
 name = "macerator"
-version = "0.2.7"
+version = "0.2.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "86b9b4b76a4593e53b4eb6dff09738263b27225963ca76b380801413e0d4b241"
+checksum = "bce07f822458c4c303081d133a90610406162e7c8df17434956ac1892faf447b"
 dependencies = [
  "bytemuck",
+ "cfg_aliases",
  "half",
  "macerator-macros",
+ "moddef",
  "num-traits",
  "paste",
 ]
 
 [[package]]
 name = "macerator-macros"
-version = "0.1.1"
+version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "806a19478649154a009ef47e9361db11ed392a8f7978590eed4a590ceef01bdd"
+checksum = "a2b955a106dca78c0577269d67a6d56114abb8644b810fc995a22348276bb9dd"
 dependencies = [
  "darling",
  "proc-macro2",
@@ -1927,6 +1929,12 @@ checksum = "3be647b768db090acb35d5ec5db2b0e1f1de11133ca123b9eacf5137868f892a"
 dependencies = [
  "adler2",
 ]
+
+[[package]]
+name = "moddef"
+version = "0.2.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4e519fd9c6131c1c9a4a67f8bdc4f32eb4105b16c1468adea1b8e68c98c85ec4"
 
 [[package]]
 name = "naga"
