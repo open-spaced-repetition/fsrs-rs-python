@@ -26,16 +26,12 @@ def main():
     reviews_by_card = group_reviews_by_card(records)
 
     # Remove revlog before last learning
-    reviews_by_card = {
-        k: remove_revlog_before_last_learning(v) for k, v in reviews_by_card.items()
-    }
+    reviews_by_card = {k: remove_revlog_before_last_learning(v) for k, v in reviews_by_card.items()}
     reviews_by_card = {k: v for k, v in reviews_by_card.items() if len(v) > 0}
 
     # Convert to FSRSItems
     fsrs_items_with_date = [
-        item
-        for items in map(convert_to_fsrs_item, reviews_by_card.values())
-        for item in items
+        item for items in map(convert_to_fsrs_item, reviews_by_card.values()) for item in items
     ]
     fsrs_items_with_date = sorted(fsrs_items_with_date, key=lambda x: x[0])
     fsrs_items = [item[1] for item in fsrs_items_with_date]
@@ -76,9 +72,7 @@ def remove_revlog_before_last_learning(
             break
 
     # Return entries from the last learning block onwards, or empty list if no learning found
-    return (
-        entries[last_learning_block_start:] if last_learning_block_start != -1 else []
-    )
+    return entries[last_learning_block_start:] if last_learning_block_start != -1 else []
 
 
 def group_reviews_by_card(
