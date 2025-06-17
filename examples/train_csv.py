@@ -25,10 +25,16 @@ def main():
     # Group by card_id
     reviews_by_card = group_reviews_by_card(records)
 
+    # Remove revlog before last learning
+    reviews_by_card = {k: remove_revlog_before_last_learning(v) for k, v in reviews_by_card.items()}
+    reviews_by_card = {k: v for k, v in reviews_by_card.items() if len(v) > 0}
+
     # Convert to FSRSItems
-    fsrs_items = [
+    fsrs_items_with_date = [
         item for items in map(convert_to_fsrs_item, reviews_by_card.values()) for item in items
     ]
+    fsrs_items_with_date = sorted(fsrs_items_with_date, key=lambda x: x[0])
+    fsrs_items = [item[1] for item in fsrs_items_with_date]
     print(f"{len(fsrs_items) = }")
 
     # Create FSRS instance and optimize
@@ -39,8 +45,40 @@ def main():
     print(f"Full training time: {end_time - start_time:.2f}s\n")
 
 
-def group_reviews_by_card(records: List[Dict]) -> Dict[str, List[Tuple[datetime, int]]]:
-    reviews_by_card: Dict[str, List[Tuple[datetime, int]]] = {}
+def remove_revlog_before_last_learning(
+    entries: List[Tuple[datetime, int, int]],
+) -> List[Tuple[datetime, int, int]]:
+    """
+    Remove review log entries before the last learning block.
+
+    Args:
+        entries: List of (datetime, rating) tuples representing review history
+
+    Returns:
+        List of entries starting from the last learning block, or empty list if no learning found
+    """
+
+    def is_learning_state(entry: Tuple[datetime, int, int]) -> bool:
+        # Rating 0 = New, Rating 1 = Learning
+        return entry[2] in [0, 1]
+
+    last_learning_block_start = -1
+
+    # Find the start of the last learning block by scanning backwards
+    for i in range(len(entries) - 1, -1, -1):
+        if is_learning_state(entries[i]):
+            last_learning_block_start = i
+        elif last_learning_block_start != -1:
+            break
+
+    # Return entries from the last learning block onwards, or empty list if no learning found
+    return entries[last_learning_block_start:] if last_learning_block_start != -1 else []
+
+
+def group_reviews_by_card(
+    records: List[Dict],
+) -> Dict[str, List[Tuple[datetime, int, int]]]:
+    reviews_by_card: Dict[str, List[Tuple[datetime, int, int]]] = {}
 
     for record in records:
         card_id = record["card_id"]
@@ -55,7 +93,9 @@ def group_reviews_by_card(records: List[Dict]) -> Dict[str, List[Tuple[datetime,
         # Then subtract 4 hours for next day cutoff
         date = date - timedelta(hours=4)
 
-        reviews_by_card[card_id].append((date, int(record["review_rating"])))
+        reviews_by_card[card_id].append(
+            (date, int(record["review_rating"]), int(record["review_state"]))
+        )
 
     # Ensure reviews for each card are sorted by time
     for reviews in reviews_by_card.values():
@@ -64,19 +104,21 @@ def group_reviews_by_card(records: List[Dict]) -> Dict[str, List[Tuple[datetime,
     return reviews_by_card
 
 
-def convert_to_fsrs_item(history: List[Tuple[datetime, int]]) -> List[FSRSItem]:
+def convert_to_fsrs_item(
+    history: List[Tuple[datetime, int, int]],
+) -> List[Tuple[datetime, FSRSItem]]:
     reviews: List[FSRSReview] = []
     last_date = history[0][0]
-    items: List[FSRSItem] = []
+    items: List[Tuple[datetime, FSRSItem]] = []
 
-    for date, rating in history:
+    for date, rating, _ in history:
         delta_t = date_diff_in_days(last_date, date)
         reviews.append(FSRSReview(rating, delta_t))
         if delta_t > 0:  # the last review is not the same day
-            items.append(FSRSItem(reviews[:]))
+            items.append((date, FSRSItem(reviews)))
         last_date = date
 
-    return [item for item in items if item.long_term_review_cnt() > 0]
+    return [item for item in items if item[1].long_term_review_cnt() > 0]
 
 
 def date_diff_in_days(a: datetime, b: datetime) -> int:

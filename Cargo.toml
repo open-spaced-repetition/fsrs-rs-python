@@ -9,10 +9,10 @@ name = "fsrs_rs_python"
 crate-type = ["cdylib"]
 
 [dependencies.fsrs]
-# version = "2.0.4"
+version = "4.1.1"
 # path = "../fsrs-rs"
-git = "https://github.com/open-spaced-repetition/fsrs-rs.git"
-rev = "9b2f2f72f68e7fbddf1aff3ca0271d6ee26702e6"
+# git = "https://github.com/open-spaced-repetition/fsrs-rs.git"
+# rev = "9b2f2f72f68e7fbddf1aff3ca0271d6ee26702e6"
 
 [dependencies]
 pyo3 = "0.25.0"
