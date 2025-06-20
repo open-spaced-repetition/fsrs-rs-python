@@ -3,7 +3,8 @@ import time
 import urllib.request
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import Dict, List, Tuple
+from collections import defaultdict
+from typing import Dict, List, Tuple, DefaultDict
 
 from fsrs_rs_python import FSRS, FSRSItem, FSRSReview
 
@@ -77,14 +78,11 @@ def remove_revlog_before_last_learning(
 
 def group_reviews_by_card(
     records: List[Dict],
-) -> Dict[str, List[Tuple[datetime, int, int]]]:
-    reviews_by_card: Dict[str, List[Tuple[datetime, int, int]]] = {}
+) -> DefaultDict[str, List[Tuple[datetime, int, int]]]:
+    reviews_by_card: DefaultDict[str, List[Tuple[datetime, int, int]]] = defaultdict(list)
 
     for record in records:
         card_id = record["card_id"]
-        if card_id not in reviews_by_card:
-            reviews_by_card[card_id] = []
-
         # Convert millisecond timestamp to second timestamp
         timestamp = int(record["review_time"]) // 1000
         date = datetime.fromtimestamp(timestamp, tz=timezone.utc)
