@@ -1,10 +1,10 @@
 import csv
 import time
 import urllib.request
+from collections import defaultdict
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from collections import defaultdict
-from typing import Dict, List, Tuple, DefaultDict
+from typing import DefaultDict, Dict, List, Tuple
 
 from fsrs_rs_python import FSRS, FSRSItem, FSRSReview
 
