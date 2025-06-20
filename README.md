@@ -1,5 +1,7 @@
 # FSRS-RS-Python
 
+<a href="https://pypi.org/project/fsrs-rs-python/"><img src="https://img.shields.io/pypi/v/fsrs-rs-python"></a>
+
 Python bindings for [fsrs-rs](https://github.com/open-spaced-repetition/fsrs-rs), use burn-rs, instead of pytorch.
 
 ```
