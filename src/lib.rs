@@ -1,3 +1,4 @@
+#![feature(try_blocks)]
 mod simulator_config;
 use fsrs::ComputeParametersInput;
 use simulator_config::SimulatorConfig;
@@ -12,7 +13,8 @@ pub struct FSRS(Mutex<fsrs::FSRS>);
 impl FSRS {
     #[new]
     pub fn new(parameters: Vec<f32>) -> Self {
-        Self(fsrs::FSRS::new(Some(&parameters)).unwrap().into())
+        let result: Result<fsrs::FSRS, _> = try { fsrs::FSRS::new(Some(&parameters))? };
+        Self(result.unwrap().into())
     }
     #[pyo3(signature=(current_memory_state,desired_retention,days_elapsed))]
     pub fn next_states(
@@ -21,37 +23,40 @@ impl FSRS {
         desired_retention: f32,
         days_elapsed: u32,
     ) -> NextStates {
-        NextStates(
+        let result: Result<fsrs::NextStates, _> = try {
             self.0
-                .lock()
-                .unwrap()
+                .lock()?
                 .next_states(
                     current_memory_state.map(|x| x.0),
                     desired_retention,
                     days_elapsed,
-                )
-                .unwrap(),
-        )
+                )?
+        };
+        NextStates(result.unwrap())
     }
     pub fn compute_parameters(&self, train_set: Vec<FSRSItem>) -> Vec<f32> {
-        self.0
-            .lock()
-            .unwrap()
-            .compute_parameters(ComputeParametersInput {
+        let result: Result<Vec<f32>, _> = try {
+            self.0
+                .lock()?
+                .compute_parameters(ComputeParametersInput {
+                    train_set: train_set.iter().map(|x| x.0.clone()).collect(),
+                    progress: None,
+                    enable_short_term: true,
+                    num_relearning_steps: None,
+                })?
+        };
+        result.unwrap_or_default()
+    }
+    pub fn benchmark(&self, train_set: Vec<FSRSItem>) -> Vec<f32> {
+        let result: Result<Vec<f32>, _> = try {
+            self.0.lock()?.benchmark(ComputeParametersInput {
                 train_set: train_set.iter().map(|x| x.0.clone()).collect(),
                 progress: None,
                 enable_short_term: true,
                 num_relearning_steps: None,
-            })
-            .unwrap_or_default()
-    }
-    pub fn benchmark(&self, train_set: Vec<FSRSItem>) -> Vec<f32> {
-        self.0.lock().unwrap().benchmark(ComputeParametersInput {
-            train_set: train_set.iter().map(|x| x.0.clone()).collect(),
-            progress: None,
-            enable_short_term: true,
-            num_relearning_steps: None,
-        })
+            })?
+        };
+        result.unwrap()
     }
     pub fn memory_state_from_sm2(
         &self,
@@ -59,23 +64,21 @@ impl FSRS {
         interval: f32,
         sm2_retention: f32,
     ) -> MemoryState {
-        MemoryState(
+        let result: Result<fsrs::MemoryState, _> = try {
             self.0
-                .lock()
-                .unwrap()
-                .memory_state_from_sm2(ease_factor, interval, sm2_retention)
-                .unwrap(),
-        )
+                .lock()?
+                .memory_state_from_sm2(ease_factor, interval, sm2_retention)?
+        };
+        MemoryState(result.unwrap())
     }
     #[pyo3(signature = (item, starting_state=None))]
     pub fn memory_state(&self, item: FSRSItem, starting_state: Option<MemoryState>) -> MemoryState {
-        MemoryState(
+        let result: Result<fsrs::MemoryState, _> = try {
             self.0
-                .lock()
-                .unwrap()
-                .memory_state(item.0, starting_state.map(|x| x.0))
-                .unwrap(),
-        )
+                .lock()?
+                .memory_state(item.0, starting_state.map(|x| x.0))?
+        };
+        MemoryState(result.unwrap())
     }
 }
 #[pyclass(module = "fsrs_rs_python")]
@@ -230,7 +233,9 @@ fn simulate(
 ) -> SimulationResult {
     let default_config = SimulatorConfig::default();
     let config = config.unwrap_or(&default_config);
-    SimulationResult(fsrs::simulate(&config.0, &w, desired_retention, seed, None).unwrap())
+    let result: Result<fsrs::SimulationResult, _> =
+        try { fsrs::simulate(&config.0, &w, desired_retention, seed, None)? };
+    SimulationResult(result.unwrap())
 }
 
 #[pyfunction]
