@@ -15,5 +15,5 @@ version = "5.1.0"
 # rev = "9b2f2f72f68e7fbddf1aff3ca0271d6ee26702e6"
 
 [dependencies]
-pyo3 = "0.26.0"
+pyo3 = "0.27.1"
 macerator = "0.2.9" # https://github.com/wingertge/macerator/issues/4
