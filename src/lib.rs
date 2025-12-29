@@ -1,3 +1,5 @@
+#![feature(try_blocks)]
+
 mod simulator_config;
 use fsrs::ComputeParametersInput;
 use simulator_config::SimulatorConfig;
@@ -22,14 +24,13 @@ impl FSRS {
         days_elapsed: u32,
     ) -> NextStates {
         NextStates(
-            self.0
-                .lock()
-                .unwrap()
-                .next_states(
+            (try {
+                self.0.lock().unwrap().next_states(
                     current_memory_state.map(|x| x.0),
                     desired_retention,
                     days_elapsed,
-                )
+                )?
+            } as Result<_, fsrs::FSRSError>)
                 .unwrap(),
         )
     }
@@ -60,20 +61,24 @@ impl FSRS {
         sm2_retention: f32,
     ) -> MemoryState {
         MemoryState(
-            self.0
-                .lock()
-                .unwrap()
-                .memory_state_from_sm2(ease_factor, interval, sm2_retention)
+            (try {
+                self.0
+                    .lock()
+                    .unwrap()
+                    .memory_state_from_sm2(ease_factor, interval, sm2_retention)?
+            } as Result<_, fsrs::FSRSError>)
                 .unwrap(),
         )
     }
     #[pyo3(signature = (item, starting_state=None))]
     pub fn memory_state(&self, item: FSRSItem, starting_state: Option<MemoryState>) -> MemoryState {
         MemoryState(
-            self.0
-                .lock()
-                .unwrap()
-                .memory_state(item.0, starting_state.map(|x| x.0))
+            (try {
+                self.0
+                    .lock()
+                    .unwrap()
+                    .memory_state(item.0, starting_state.map(|x| x.0))?
+            } as Result<_, fsrs::FSRSError>)
                 .unwrap(),
         )
     }
