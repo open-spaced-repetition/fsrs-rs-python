@@ -4,15 +4,23 @@ use simulator_config::SimulatorConfig;
 
 use std::sync::Mutex;
 
+use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
+
+fn fsrs_error_to_py(error: fsrs::FSRSError) -> PyErr {
+    PyValueError::new_err(error.to_string())
+}
+
 #[pyclass(module = "fsrs_rs_python")]
 #[derive(Debug)]
 pub struct FSRS(Mutex<fsrs::FSRS>);
 #[pymethods]
 impl FSRS {
     #[new]
-    pub fn new(parameters: Vec<f32>) -> Self {
-        Self(fsrs::FSRS::new(Some(&parameters)).unwrap().into())
+    pub fn new(parameters: Vec<f32>) -> PyResult<Self> {
+        Ok(Self(Mutex::new(
+            fsrs::FSRS::new(&parameters).map_err(fsrs_error_to_py)?,
+        )))
     }
     #[pyo3(signature=(current_memory_state,desired_retention,days_elapsed))]
     pub fn next_states(
@@ -33,24 +41,37 @@ impl FSRS {
                 .unwrap(),
         )
     }
-    pub fn compute_parameters(&self, train_set: Vec<FSRSItem>) -> Vec<f32> {
-        self.0
-            .lock()
-            .unwrap()
-            .compute_parameters(ComputeParametersInput {
-                train_set: train_set.iter().map(|x| x.0.clone()).collect(),
-                progress: None,
-                enable_short_term: true,
-                num_relearning_steps: None,
-            })
-            .unwrap_or_default()
-    }
-    pub fn benchmark(&self, train_set: Vec<FSRSItem>) -> Vec<f32> {
-        self.0.lock().unwrap().benchmark(ComputeParametersInput {
-            train_set: train_set.iter().map(|x| x.0.clone()).collect(),
+    #[pyo3(signature = (fsrs_items, card_ids=None, enable_short_term=true, num_relearning_steps=None))]
+    pub fn compute_parameters(
+        &self,
+        fsrs_items: Vec<FSRSItem>,
+        card_ids: Option<Vec<i64>>,
+        enable_short_term: bool,
+        num_relearning_steps: Option<usize>,
+    ) -> PyResult<Vec<f32>> {
+        fsrs::compute_parameters(ComputeParametersInput {
+            train_set: fsrs_items.into_iter().map(|x| x.0).collect(),
+            card_ids,
             progress: None,
-            enable_short_term: true,
-            num_relearning_steps: None,
+            enable_short_term,
+            num_relearning_steps,
+        })
+        .map_err(fsrs_error_to_py)
+    }
+    #[pyo3(signature = (fsrs_items, card_ids=None, enable_short_term=true, num_relearning_steps=None))]
+    pub fn benchmark(
+        &self,
+        fsrs_items: Vec<FSRSItem>,
+        card_ids: Option<Vec<i64>>,
+        enable_short_term: bool,
+        num_relearning_steps: Option<usize>,
+    ) -> Vec<f32> {
+        fsrs::benchmark(ComputeParametersInput {
+            train_set: fsrs_items.into_iter().map(|x| x.0).collect(),
+            card_ids,
+            progress: None,
+            enable_short_term,
+            num_relearning_steps,
         })
     }
     pub fn memory_state_from_sm2(
@@ -218,6 +239,14 @@ impl SimulationResult {
     pub fn correct_cnt_per_day(&self) -> Vec<usize> {
         self.0.correct_cnt_per_day.clone()
     }
+    #[getter]
+    pub fn average_desired_retention(&self) -> Option<f32> {
+        self.0.average_desired_retention
+    }
+    #[getter]
+    pub fn introduced_cnt_per_day(&self) -> Vec<usize> {
+        self.0.introduced_cnt_per_day.clone()
+    }
 }
 
 #[pyfunction]
@@ -247,14 +276,10 @@ fn fsrs_rs_python(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<ItemState>()?;
     m.add_class::<FSRSItem>()?;
     m.add_class::<FSRSReview>()?;
+    m.add_class::<SimulationResult>()?;
+    m.add_class::<SimulatorConfig>()?;
     m.add_function(wrap_pyfunction!(simulate, m)?)?;
     m.add_function(wrap_pyfunction!(default_simulator_config, m)?)?;
-    m.add(
-        "DEFAULT_PARAMETERS",
-        [
-            0.40255, 1.18385, 3.173, 15.69105, 7.1949, 0.5345, 1.4604, 0.0046, 1.54575, 0.1192,
-            1.01925, 1.9395, 0.11, 0.29605, 2.2698, 0.2315, 2.9898, 0.51655, 0.6621,
-        ],
-    )?;
+    m.add("DEFAULT_PARAMETERS", fsrs::DEFAULT_PARAMETERS.to_vec())?;
     Ok(())
 }

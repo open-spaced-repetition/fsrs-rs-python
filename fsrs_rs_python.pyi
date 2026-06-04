@@ -1,17 +1,28 @@
-from dataclasses import dataclass
-from typing import List, Optional
+from typing import List, Optional, Sequence
 
 class FSRS:
     ...
-    def __init__(self, parameters: List[float]) -> None: ...
+    def __init__(self, parameters: Sequence[float]) -> None: ...
     def next_states(
         self,
         current_memory_state: Optional[MemoryState],
         desired_retention: float,
         days_elapsed: int,
     ) -> NextStates: ...
-    def compute_parameters(self, fsrs_items: List[FSRSItem]) -> List[float]: ...
-    def benchmark(self, fsrs_items: List[FSRSItem]) -> List[float]: ...
+    def compute_parameters(
+        self,
+        fsrs_items: Sequence[FSRSItem],
+        card_ids: Optional[Sequence[int]] = None,
+        enable_short_term: bool = True,
+        num_relearning_steps: Optional[int] = None,
+    ) -> List[float]: ...
+    def benchmark(
+        self,
+        fsrs_items: Sequence[FSRSItem],
+        card_ids: Optional[Sequence[int]] = None,
+        enable_short_term: bool = True,
+        num_relearning_steps: Optional[int] = None,
+    ) -> List[float]: ...
     def memory_state_from_sm2(
         self, ease_factor: float, interval: float, sm2_retention: float
     ) -> MemoryState: ...
@@ -21,7 +32,8 @@ class FSRS:
 
 class FSRSItem:
     ...
-    def __init__(self, reviews: List[FSRSReview]) -> None: ...
+    reviews: List[FSRSReview]
+    def __init__(self, reviews: Sequence[FSRSReview]) -> None: ...
     def long_term_review_cnt(self) -> int: ...
 
 class FSRSReview:
@@ -30,7 +42,8 @@ class FSRSReview:
 
 class MemoryState:
     def __init__(self, stability: float, difficulty: float) -> None: ...
-    ...
+    stability: float
+    difficulty: float
 
 class NextStates:
     hard: ItemState
@@ -48,29 +61,46 @@ class SimulationResult:
     learn_cnt_per_day: list[int]
     cost_per_day: list[float]
     correct_cnt_per_day: list[int]
+    average_desired_retention: Optional[float]
+    introduced_cnt_per_day: list[int]
 
-@dataclass
 class SimulatorConfig:
     deck_size: int
     learn_span: int
     max_cost_perday: float
     max_ivl: float
-    learn_costs: list[float]  # List of 4 floats
-    review_costs: list[float]  # List of 4 floats
     first_rating_prob: list[float]  # List of 4 floats
     review_rating_prob: list[float]  # List of 3 floats
-    first_rating_offsets: list[float]  # List of 4 floats
-    first_session_lens: list[float]  # List of 4 floats
-    forget_rating_offset: float
-    forget_session_len: float
-    loss_aversion: float
+    learning_step_transitions: list[list[float]]  # 3 rows of 4 floats
+    relearning_step_transitions: list[list[float]]  # 3 rows of 4 floats
+    state_rating_costs: list[list[float]]  # 3 rows of 4 floats
+    learning_step_count: int
+    relearning_step_count: int
     learn_limit: int
     review_limit: int
     new_cards_ignore_review_limit: bool
     suspend_after_lapses: Optional[int] = None
+    def __init__(
+        self,
+        deck_size: int,
+        learn_span: int,
+        max_cost_perday: float,
+        max_ivl: float,
+        first_rating_prob: Sequence[float],
+        review_rating_prob: Sequence[float],
+        learn_limit: int,
+        review_limit: int,
+        new_cards_ignore_review_limit: bool,
+        learning_step_transitions: Sequence[Sequence[float]],
+        relearning_step_transitions: Sequence[Sequence[float]],
+        state_rating_costs: Sequence[Sequence[float]],
+        learning_step_count: int,
+        relearning_step_count: int,
+        suspend_after_lapses: Optional[int] = None,
+    ) -> None: ...
 
 def simulate(
-    w: list[float],  # List of floats
+    w: Sequence[float],
     desired_retention: float,
     config: Optional[SimulatorConfig] = None,
     seed: Optional[int] = None,
