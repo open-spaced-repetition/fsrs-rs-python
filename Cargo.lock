@@ -164,9 +164,9 @@ checksum = "a0d2fde1f7b3d48b8395d5f2de76c18a528bd6a9cdde438df747bfcba3e05d6f"
 
 [[package]]
 name = "fsrs"
-version = "6.4.1"
+version = "6.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8882290199ff574c62253792771367d75b8bed2f7c368fc68212593d6c47af06"
+checksum = "e231a676bef9b5d58896c7ff4361333be509414a5d81f4417952c35c37f770b4"
 dependencies = [
  "itertools",
  "log",

@@ -55,6 +55,7 @@ impl FSRS {
             progress: None,
             enable_short_term,
             num_relearning_steps,
+            training_config: None,
         })
         .map_err(fsrs_error_to_py)
     }
@@ -72,6 +73,7 @@ impl FSRS {
             progress: None,
             enable_short_term,
             num_relearning_steps,
+            training_config: None,
         })
     }
     pub fn memory_state_from_sm2(
