@@ -9,12 +9,19 @@ class FSRS:
         desired_retention: float,
         days_elapsed: int,
     ) -> NextStates: ...
+    def next_interval(
+        self,
+        stability: Optional[float],
+        desired_retention: float,
+        rating: int,
+    ) -> float: ...
     def compute_parameters(
         self,
         fsrs_items: Sequence[FSRSItem],
         card_ids: Optional[Sequence[int]] = None,
         enable_short_term: bool = True,
         num_relearning_steps: Optional[int] = None,
+        training_config: Optional[TrainingConfig] = None,
     ) -> List[float]: ...
     def benchmark(
         self,
@@ -22,6 +29,7 @@ class FSRS:
         card_ids: Optional[Sequence[int]] = None,
         enable_short_term: bool = True,
         num_relearning_steps: Optional[int] = None,
+        training_config: Optional[TrainingConfig] = None,
     ) -> List[float]: ...
     def memory_state_from_sm2(
         self, ease_factor: float, interval: float, sm2_retention: float
@@ -29,6 +37,41 @@ class FSRS:
     def memory_state(
         self, item: FSRSItem, starting_state: Optional[MemoryState] = None
     ) -> MemoryState: ...
+    def memory_state_batch(
+        self,
+        items: Sequence[FSRSItem],
+        starting_states: Optional[Sequence[Optional[MemoryState]]] = None,
+    ) -> List[MemoryState]: ...
+    def historical_memory_states(
+        self, item: FSRSItem, starting_state: Optional[MemoryState] = None
+    ) -> List[MemoryState]: ...
+    def historical_memory_state_batch(
+        self,
+        items: Sequence[FSRSItem],
+        starting_states: Optional[Sequence[Optional[MemoryState]]] = None,
+    ) -> List[List[MemoryState]]: ...
+    def evaluate(self, fsrs_items: Sequence[FSRSItem]) -> ModelEvaluation: ...
+
+class TrainingConfig:
+    num_epochs: int
+    batch_size: int
+    seed: int
+    learning_rate: float
+    max_seq_len: int
+    gamma: float
+    def __init__(
+        self,
+        num_epochs: int = 5,
+        batch_size: int = 512,
+        seed: int = 2023,
+        learning_rate: float = 4e-2,
+        max_seq_len: int = 256,
+        gamma: float = 1.0,
+    ) -> None: ...
+
+class ModelEvaluation:
+    log_loss: float
+    rmse_bins: float
 
 class FSRSItem:
     ...
@@ -106,5 +149,17 @@ def simulate(
     seed: Optional[int] = None,
 ) -> SimulationResult: ...
 def default_simulator_config() -> SimulatorConfig: ...
+def evaluate_with_time_series_splits(
+    fsrs_items: Sequence[FSRSItem],
+    card_ids: Optional[Sequence[int]] = None,
+    enable_short_term: bool = True,
+    num_relearning_steps: Optional[int] = None,
+    training_config: Optional[TrainingConfig] = None,
+) -> ModelEvaluation: ...
+def filter_outlier(
+    dataset_for_initialization: Sequence[FSRSItem],
+    trainset: Sequence[FSRSItem],
+) -> tuple[List[FSRSItem], List[FSRSItem]]: ...
+def check_and_fill_parameters(parameters: Sequence[float]) -> List[float]: ...
 
 DEFAULT_PARAMETERS: List[float]
