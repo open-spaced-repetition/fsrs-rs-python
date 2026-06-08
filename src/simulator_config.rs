@@ -79,6 +79,31 @@ impl SimulatorConfig {
     }
 
     #[getter]
+    pub fn learning_step_transitions(&self) -> [[f32; 4]; 3] {
+        self.0.learning_step_transitions
+    }
+
+    #[getter]
+    pub fn relearning_step_transitions(&self) -> [[f32; 4]; 3] {
+        self.0.relearning_step_transitions
+    }
+
+    #[getter]
+    pub fn state_rating_costs(&self) -> [[f32; 4]; 3] {
+        self.0.state_rating_costs
+    }
+
+    #[getter]
+    pub fn learning_step_count(&self) -> usize {
+        self.0.learning_step_count
+    }
+
+    #[getter]
+    pub fn relearning_step_count(&self) -> usize {
+        self.0.relearning_step_count
+    }
+
+    #[getter]
     pub fn learn_limit(&self) -> usize {
         self.0.learn_limit
     }
@@ -127,6 +152,31 @@ impl SimulatorConfig {
     #[setter]
     pub fn set_review_rating_prob(&mut self, value: [f32; 3]) {
         self.0.review_rating_prob = value;
+    }
+
+    #[setter]
+    pub fn set_learning_step_transitions(&mut self, value: [[f32; 4]; 3]) {
+        self.0.learning_step_transitions = value;
+    }
+
+    #[setter]
+    pub fn set_relearning_step_transitions(&mut self, value: [[f32; 4]; 3]) {
+        self.0.relearning_step_transitions = value;
+    }
+
+    #[setter]
+    pub fn set_state_rating_costs(&mut self, value: [[f32; 4]; 3]) {
+        self.0.state_rating_costs = value;
+    }
+
+    #[setter]
+    pub fn set_learning_step_count(&mut self, value: usize) {
+        self.0.learning_step_count = value;
+    }
+
+    #[setter]
+    pub fn set_relearning_step_count(&mut self, value: usize) {
+        self.0.relearning_step_count = value;
     }
 
     #[setter]
