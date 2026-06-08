@@ -16,4 +16,4 @@ version = "6.6.0"
 
 [dependencies]
 pyo3 = "0.28.3"
-macerator = "0.2.9" # https://github.com/wingertge/macerator/issues/4
+macerator = "0.3.2" # https://github.com/wingertge/macerator/issues/4
