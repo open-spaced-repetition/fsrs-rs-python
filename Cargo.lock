@@ -164,9 +164,9 @@ checksum = "d9c4f5dac5e15c24eb999c26181a6ca40b39fe946cbe4c263c7209467bc83af2"
 
 [[package]]
 name = "fsrs"
-version = "6.6.0"
+version = "6.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e231a676bef9b5d58896c7ff4361333be509414a5d81f4417952c35c37f770b4"
+checksum = "b8a99ea3dec9af37c9ed3835463ff6820a578a0026a8e370b4c1c0db48dfab3f"
 dependencies = [
  "itertools",
  "log",
@@ -181,7 +181,7 @@ dependencies = [
 
 [[package]]
 name = "fsrs-rs-python"
-version = "0.9.0"
+version = "0.9.2"
 dependencies = [
  "fsrs",
  "macerator",
