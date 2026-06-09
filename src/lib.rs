@@ -1,3 +1,5 @@
+#![feature(try_blocks)]
+
 mod simulator_config;
 use fsrs::ComputeParametersInput;
 use simulator_config::SimulatorConfig;
