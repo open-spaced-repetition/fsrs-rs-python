@@ -1,4 +1,4 @@
-from typing import List, Optional, Sequence
+from typing import Callable, List, Optional, Sequence
 
 class FSRS:
     ...
@@ -106,6 +106,22 @@ class SimulationResult:
     correct_cnt_per_day: list[int]
     average_desired_retention: Optional[float]
     introduced_cnt_per_day: list[int]
+    cards: List[Card]
+
+class Card:
+    id: int
+    difficulty: float
+    stability: float
+    last_date: float
+    due: float
+    interval: float
+    lapses: int
+    desired_retention: float
+    parameters: List[float]
+    def __init__(self) -> None: ...
+    def retention_on(self, date: float) -> float: ...
+    def retrievability(self) -> float: ...
+    def scheduled_due(self) -> float: ...
 
 class SimulatorConfig:
     deck_size: int
@@ -148,6 +164,12 @@ def simulate(
     config: Optional[SimulatorConfig] = None,
     seed: Optional[int] = None,
 ) -> SimulationResult: ...
+def optimal_retention(
+    config: SimulatorConfig,
+    parameters: Sequence[float],
+    cards: Optional[Sequence[Card]] = None,
+    target: Optional[Callable[[SimulationResult, Sequence[float]], float]] = None,
+) -> float: ...
 def default_simulator_config() -> SimulatorConfig: ...
 def evaluate_with_time_series_splits(
     fsrs_items: Sequence[FSRSItem],
