@@ -2,10 +2,11 @@ mod simulator_config;
 use fsrs::ComputeParametersInput;
 use simulator_config::SimulatorConfig;
 
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
 
-use pyo3::exceptions::PyValueError;
+use pyo3::exceptions::{PyTypeError, PyValueError};
 use pyo3::prelude::*;
+use pyo3::types::PyAny;
 
 fn fsrs_error_to_py(error: fsrs::FSRSError) -> PyErr {
     PyValueError::new_err(error.to_string())
@@ -485,6 +486,134 @@ impl SimulationResult {
     pub fn introduced_cnt_per_day(&self) -> Vec<usize> {
         self.0.introduced_cnt_per_day.clone()
     }
+    #[getter]
+    pub fn cards(&self) -> Vec<Card> {
+        self.0.cards.iter().cloned().map(Card).collect()
+    }
+}
+
+#[pyclass(module = "fsrs_rs_python", from_py_object)]
+#[derive(Debug, Clone, Default)]
+pub struct Card(fsrs::Card);
+
+#[pymethods]
+impl Card {
+    #[new]
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    #[getter]
+    pub fn id(&self) -> i64 {
+        self.0.id
+    }
+    #[setter]
+    pub fn set_id(&mut self, value: i64) {
+        self.0.id = value;
+    }
+
+    #[getter]
+    pub fn difficulty(&self) -> f32 {
+        self.0.difficulty
+    }
+    #[setter]
+    pub fn set_difficulty(&mut self, value: f32) {
+        self.0.difficulty = value;
+    }
+
+    #[getter]
+    pub fn stability(&self) -> f32 {
+        self.0.stability
+    }
+    #[setter]
+    pub fn set_stability(&mut self, value: f32) {
+        self.0.stability = value;
+    }
+
+    #[getter]
+    pub fn last_date(&self) -> f32 {
+        self.0.last_date
+    }
+    #[setter]
+    pub fn set_last_date(&mut self, value: f32) {
+        self.0.last_date = value;
+    }
+
+    #[getter]
+    pub fn due(&self) -> f32 {
+        self.0.due
+    }
+    #[setter]
+    pub fn set_due(&mut self, value: f32) {
+        self.0.due = value;
+    }
+
+    #[getter]
+    pub fn interval(&self) -> f32 {
+        self.0.interval
+    }
+    #[setter]
+    pub fn set_interval(&mut self, value: f32) {
+        self.0.interval = value;
+    }
+
+    #[getter]
+    pub fn lapses(&self) -> u32 {
+        self.0.lapses
+    }
+    #[setter]
+    pub fn set_lapses(&mut self, value: u32) {
+        self.0.lapses = value;
+    }
+
+    #[getter]
+    pub fn desired_retention(&self) -> f32 {
+        self.0.desired_retention
+    }
+    #[setter]
+    pub fn set_desired_retention(&mut self, value: f32) {
+        self.0.desired_retention = value;
+    }
+
+    #[getter]
+    pub fn parameters(&self) -> Vec<f32> {
+        self.0.parameters.as_ref().clone()
+    }
+    #[setter]
+    pub fn set_parameters(&mut self, value: Vec<f32>) -> PyResult<()> {
+        self.0.parameters =
+            Arc::new(fsrs::check_and_fill_parameters(&value).map_err(fsrs_error_to_py)?);
+        Ok(())
+    }
+
+    pub fn retention_on(&self, date: f32) -> f32 {
+        self.0.retention_on(date)
+    }
+
+    pub fn retrievability(&self) -> f32 {
+        self.0.retrievability()
+    }
+
+    pub fn scheduled_due(&self) -> f32 {
+        self.0.scheduled_due()
+    }
+
+    pub fn __repr__(&self) -> String {
+        format!("{:?}", self.0)
+    }
+}
+
+fn clone_simulation_result(result: &fsrs::SimulationResult) -> fsrs::SimulationResult {
+    fsrs::SimulationResult {
+        memorized_cnt_per_day: result.memorized_cnt_per_day.clone(),
+        review_cnt_per_day: result.review_cnt_per_day.clone(),
+        learn_cnt_per_day: result.learn_cnt_per_day.clone(),
+        cost_per_day: result.cost_per_day.clone(),
+        average_desired_retention: result.average_desired_retention,
+        correct_cnt_per_day: result.correct_cnt_per_day.clone(),
+        introduced_cnt_per_day: result.introduced_cnt_per_day.clone(),
+        cards: result.cards.clone(),
+    }
 }
 
 #[pyfunction]
@@ -498,6 +627,61 @@ fn simulate(
     let default_config = SimulatorConfig::default();
     let config = config.unwrap_or(&default_config);
     SimulationResult(fsrs::simulate(&config.0, &w, desired_retention, seed, None).unwrap())
+}
+
+#[pyfunction]
+#[pyo3(signature = (config, parameters, cards=None, target=None))]
+fn optimal_retention(
+    py: Python<'_>,
+    config: &SimulatorConfig,
+    parameters: Vec<f32>,
+    cards: Option<Vec<Card>>,
+    target: Option<Py<PyAny>>,
+) -> PyResult<f32> {
+    if target
+        .as_ref()
+        .is_some_and(|target| !target.bind(py).is_callable())
+    {
+        return Err(PyTypeError::new_err("target must be callable"));
+    }
+
+    let callback_error = Arc::new(Mutex::new(None));
+    let target = target.map(|target| {
+        let callback_error = Arc::clone(&callback_error);
+        fsrs::CMRRTargetFn::new(move |result, parameters| {
+            Python::attach(|py| {
+                let result = Py::new(py, SimulationResult(clone_simulation_result(result)));
+                let value = result.and_then(|result| {
+                    target
+                        .call1(py, (result, parameters.to_vec()))
+                        .and_then(|value| value.extract(py))
+                });
+
+                match value {
+                    Ok(value) => value,
+                    Err(error) => {
+                        let mut stored_error = callback_error.lock().unwrap();
+                        if stored_error.is_none() {
+                            *stored_error = Some(error);
+                        }
+                        f32::NAN
+                    }
+                }
+            })
+        })
+    });
+
+    let cards = cards.map(|cards| cards.into_iter().map(|card| card.0).collect());
+    let result = py.detach(|| {
+        fsrs::optimal_retention(&config.0, &parameters, |_| true, cards, target)
+            .map_err(fsrs_error_to_py)
+    });
+
+    if let Some(error) = callback_error.lock().unwrap().take() {
+        Err(error)
+    } else {
+        result
+    }
 }
 
 #[pyfunction]
@@ -578,8 +762,10 @@ fn fsrs_rs_python(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<FSRSItem>()?;
     m.add_class::<FSRSReview>()?;
     m.add_class::<SimulationResult>()?;
+    m.add_class::<Card>()?;
     m.add_class::<SimulatorConfig>()?;
     m.add_function(wrap_pyfunction!(simulate, m)?)?;
+    m.add_function(wrap_pyfunction!(optimal_retention, m)?)?;
     m.add_function(wrap_pyfunction!(default_simulator_config, m)?)?;
     m.add_function(wrap_pyfunction!(evaluate_with_time_series_splits, m)?)?;
     m.add_function(wrap_pyfunction!(filter_outlier, m)?)?;
