@@ -11,6 +11,10 @@ classifiers = [
     "Programming Language :: Python :: Implementation :: PyPy",
 ]
 dynamic = ["version"]
+
+[tool.pyrefly.errors]
+no-any-return = "error"
+redundant-cast = "warn"
 [tool.maturin]
 features = ["pyo3/extension-module"]
 
@@ -26,3 +30,8 @@ warn_redundant_casts = true
 warn_unused_ignores = true
 warn_no_return = true
 warn_unreachable = true
+
+[tool.pyrefly]
+python-version = "3.9.0"
+preset = "legacy"
+search-path = ["."]
