@@ -1,5 +1,5 @@
 mod simulator_config;
-use fsrs::ComputeParametersInput;
+use fsrs::{ComputeParametersInput, ComputeParametersVersion};
 use simulator_config::SimulatorConfig;
 
 use std::sync::{Arc, Mutex};
@@ -14,10 +14,74 @@ fn fsrs_error_to_py(error: fsrs::FSRSError) -> PyErr {
 
 fn convert_training_config(
     training_config: Option<&TrainingConfig>,
+    model_version: ComputeParametersVersion,
 ) -> PyResult<Option<fsrs::TrainingConfig>> {
-    training_config
-        .map(TrainingConfig::as_valid_fsrs)
-        .transpose()
+    match training_config {
+        Some(config) => config.as_valid_fsrs().map(Some),
+        // fsrs 7 trains with FSRS-7 hyperparameters when no config is given, so pass the
+        // FSRS-6 defaults (5 epochs, lr 0.04, max_seq_len 256) explicitly, as in 0.9.x.
+        None if model_version == ComputeParametersVersion::Fsrs6 => {
+            Ok(Some(fsrs::TrainingConfig::default()))
+        }
+        None => Ok(None),
+    }
+}
+
+fn validate_days(name: &str, days: f32) -> PyResult<f32> {
+    if days.is_finite() && days >= 0.0 {
+        Ok(days)
+    } else {
+        Err(PyValueError::new_err(format!(
+            "{name} must be a finite, non-negative number of days"
+        )))
+    }
+}
+
+/// FSRS-6 counts whole elapsed days (floored, so same-day reviews are 0, as in 0.9.x);
+/// FSRS-7 uses fractional days as-is.
+fn elapsed_days(version: ComputeParametersVersion, days: f32) -> f32 {
+    match version {
+        ComputeParametersVersion::Fsrs6 => days.floor(),
+        ComputeParametersVersion::Fsrs7 => days,
+    }
+}
+
+/// Floors every review `delta_t` in place for FSRS-6, like [`elapsed_days`].
+fn floor_fsrs6_reviews(version: ComputeParametersVersion, items: &mut [fsrs::FSRSItem]) {
+    if version == ComputeParametersVersion::Fsrs6 {
+        for review in items.iter_mut().flat_map(|item| &mut item.reviews) {
+            review.delta_t = review.delta_t.floor();
+        }
+    }
+}
+
+/// The FSRS algorithm version. fsrs selects it from the parameter count:
+/// 17, 19 or 21 parameters are FSRS-6; 34 parameters (or none) are FSRS-7.
+#[pyclass(module = "fsrs_rs_python", eq, hash, frozen, from_py_object)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum ModelVersion {
+    #[pyo3(name = "FSRS6")]
+    Fsrs6,
+    #[pyo3(name = "FSRS7")]
+    Fsrs7,
+}
+
+impl From<fsrs::ModelVersion> for ModelVersion {
+    fn from(version: fsrs::ModelVersion) -> Self {
+        match version {
+            fsrs::ModelVersion::Fsrs6 => Self::Fsrs6,
+            fsrs::ModelVersion::Fsrs7 => Self::Fsrs7,
+        }
+    }
+}
+
+impl From<ModelVersion> for ComputeParametersVersion {
+    fn from(version: ModelVersion) -> Self {
+        match version {
+            ModelVersion::Fsrs6 => Self::Fsrs6,
+            ModelVersion::Fsrs7 => Self::Fsrs7,
+        }
+    }
 }
 
 #[pyclass(module = "fsrs_rs_python")]
@@ -31,17 +95,25 @@ impl FSRS {
             fsrs::FSRS::new(&parameters).map_err(fsrs_error_to_py)?,
         )))
     }
+    #[getter]
+    pub fn model_version(&self) -> ModelVersion {
+        self.0.lock().unwrap().version().into()
+    }
     #[pyo3(signature=(current_memory_state,desired_retention,days_elapsed))]
     pub fn next_states(
         &self,
         current_memory_state: Option<MemoryState>,
         desired_retention: f32,
-        days_elapsed: u32,
+        days_elapsed: f32,
     ) -> PyResult<NextStates> {
+        let days_elapsed = elapsed_days(
+            self.model_version().into(),
+            validate_days("days_elapsed", days_elapsed)?,
+        );
         self.0
             .lock()
             .unwrap()
-            .next_states(
+            .next_states_with_elapsed_days(
                 current_memory_state.map(|x| x.0),
                 desired_retention,
                 days_elapsed,
@@ -49,7 +121,19 @@ impl FSRS {
             .map(NextStates)
             .map_err(fsrs_error_to_py)
     }
-    #[pyo3(signature = (fsrs_items, card_ids=None, enable_short_term=true, num_relearning_steps=None, training_config=None))]
+    pub fn current_retrievability(&self, state: MemoryState, days_elapsed: f32) -> PyResult<f32> {
+        let days_elapsed = elapsed_days(
+            self.model_version().into(),
+            validate_days("days_elapsed", days_elapsed)?,
+        );
+        Ok(self
+            .0
+            .lock()
+            .unwrap()
+            .current_retrievability(state.0, days_elapsed))
+    }
+    #[pyo3(signature = (fsrs_items, card_ids=None, enable_short_term=true, num_relearning_steps=None, training_config=None, model_version=None, enable_sched_penalties=false))]
+    #[allow(clippy::too_many_arguments)]
     pub fn compute_parameters(
         &self,
         fsrs_items: Vec<FSRSItem>,
@@ -57,20 +141,28 @@ impl FSRS {
         enable_short_term: bool,
         num_relearning_steps: Option<usize>,
         training_config: Option<&TrainingConfig>,
+        model_version: Option<ModelVersion>,
+        enable_sched_penalties: bool,
     ) -> PyResult<Vec<f32>> {
-        let training_config = convert_training_config(training_config)?;
+        let model_version = model_version.unwrap_or_else(|| self.model_version()).into();
+        let training_config = convert_training_config(training_config, model_version)?;
+        let mut train_set: Vec<_> = fsrs_items.into_iter().map(|x| x.0).collect();
+        floor_fsrs6_reviews(model_version, &mut train_set);
 
         fsrs::compute_parameters(ComputeParametersInput {
-            train_set: fsrs_items.into_iter().map(|x| x.0).collect(),
+            train_set,
             card_ids,
             progress: None,
             enable_short_term,
+            enable_sched_penalties,
+            model_version,
             num_relearning_steps,
             training_config,
         })
         .map_err(fsrs_error_to_py)
     }
-    #[pyo3(signature = (fsrs_items, card_ids=None, enable_short_term=true, num_relearning_steps=None, training_config=None))]
+    #[pyo3(signature = (fsrs_items, card_ids=None, enable_short_term=true, num_relearning_steps=None, training_config=None, model_version=None, enable_sched_penalties=false))]
+    #[allow(clippy::too_many_arguments)]
     pub fn benchmark(
         &self,
         fsrs_items: Vec<FSRSItem>,
@@ -78,14 +170,21 @@ impl FSRS {
         enable_short_term: bool,
         num_relearning_steps: Option<usize>,
         training_config: Option<&TrainingConfig>,
+        model_version: Option<ModelVersion>,
+        enable_sched_penalties: bool,
     ) -> PyResult<Vec<f32>> {
-        let training_config = convert_training_config(training_config)?;
+        let model_version = model_version.unwrap_or_else(|| self.model_version()).into();
+        let training_config = convert_training_config(training_config, model_version)?;
+        let mut train_set: Vec<_> = fsrs_items.into_iter().map(|x| x.0).collect();
+        floor_fsrs6_reviews(model_version, &mut train_set);
 
         Ok(fsrs::benchmark(ComputeParametersInput {
-            train_set: fsrs_items.into_iter().map(|x| x.0).collect(),
+            train_set,
             card_ids,
             progress: None,
             enable_short_term,
+            enable_sched_penalties,
+            model_version,
             num_relearning_steps,
             training_config,
         }))
@@ -109,10 +208,12 @@ impl FSRS {
         item: FSRSItem,
         starting_state: Option<MemoryState>,
     ) -> PyResult<MemoryState> {
+        let mut item = item.0;
+        floor_fsrs6_reviews(self.model_version().into(), std::slice::from_mut(&mut item));
         self.0
             .lock()
             .unwrap()
-            .memory_state(item.0, starting_state.map(|x| x.0))
+            .memory_state(item, starting_state.map(|x| x.0))
             .map(MemoryState)
             .map_err(fsrs_error_to_py)
     }
@@ -138,11 +239,13 @@ impl FSRS {
     ) -> PyResult<Vec<MemoryState>> {
         let starting_states =
             starting_states.unwrap_or_else(|| (0..items.len()).map(|_| None).collect());
+        let mut items: Vec<_> = items.into_iter().map(|x| x.0).collect();
+        floor_fsrs6_reviews(self.model_version().into(), &mut items);
         self.0
             .lock()
             .unwrap()
             .memory_state_batch(
-                items.into_iter().map(|x| x.0).collect(),
+                items,
                 starting_states
                     .into_iter()
                     .map(|state| state.map(|x| x.0))
@@ -158,10 +261,12 @@ impl FSRS {
         item: FSRSItem,
         starting_state: Option<MemoryState>,
     ) -> PyResult<Vec<MemoryState>> {
+        let mut item = item.0;
+        floor_fsrs6_reviews(self.model_version().into(), std::slice::from_mut(&mut item));
         self.0
             .lock()
             .unwrap()
-            .historical_memory_states(item.0, starting_state.map(|x| x.0))
+            .historical_memory_states(item, starting_state.map(|x| x.0))
             .map(|states| states.into_iter().map(MemoryState).collect())
             .map_err(fsrs_error_to_py)
     }
@@ -172,11 +277,13 @@ impl FSRS {
         items: Vec<FSRSItem>,
         starting_states: Option<Vec<Option<MemoryState>>>,
     ) -> PyResult<Vec<Vec<MemoryState>>> {
+        let mut items: Vec<_> = items.into_iter().map(|x| x.0).collect();
+        floor_fsrs6_reviews(self.model_version().into(), &mut items);
         self.0
             .lock()
             .unwrap()
             .historical_memory_state_batch(
-                items.into_iter().map(|x| x.0).collect(),
+                items,
                 starting_states
                     .map(|states| states.into_iter().map(|state| state.map(|x| x.0)).collect()),
             )
@@ -190,16 +297,18 @@ impl FSRS {
     }
 
     pub fn evaluate(&self, fsrs_items: Vec<FSRSItem>) -> PyResult<ModelEvaluation> {
+        let mut fsrs_items: Vec<_> = fsrs_items.into_iter().map(|x| x.0).collect();
+        floor_fsrs6_reviews(self.model_version().into(), &mut fsrs_items);
         self.0
             .lock()
             .unwrap()
-            .evaluate(fsrs_items.into_iter().map(|x| x.0).collect(), |_| true)
+            .evaluate(fsrs_items, |_| true)
             .map(ModelEvaluation)
             .map_err(fsrs_error_to_py)
     }
 }
 
-#[pyclass(module = "fsrs_rs_python")]
+#[pyclass(module = "fsrs_rs_python", from_py_object)]
 #[derive(Debug, Clone)]
 pub struct TrainingConfig(fsrs::TrainingConfig);
 
@@ -218,8 +327,10 @@ impl TrainingConfig {
 
 #[pymethods]
 impl TrainingConfig {
+    /// `num_epochs=0` and `learning_rate=0.0` mean the model version's default
+    /// (FSRS-7: 9 epochs and 0.0118; FSRS-6: 5 epochs and 0.04).
     #[new]
-    #[pyo3(signature = (num_epochs=5, batch_size=512, seed=2023, learning_rate=4e-2, max_seq_len=256, gamma=1.0))]
+    #[pyo3(signature = (num_epochs=0, batch_size=512, seed=2023, learning_rate=0.0, max_seq_len=256, gamma=1.0))]
     pub fn new(
         num_epochs: usize,
         batch_size: usize,
@@ -317,7 +428,7 @@ impl TrainingConfig {
     }
 }
 
-#[pyclass(module = "fsrs_rs_python")]
+#[pyclass(module = "fsrs_rs_python", from_py_object)]
 #[derive(Debug, Clone)]
 pub struct ModelEvaluation(fsrs::ModelEvaluation);
 
@@ -338,17 +449,20 @@ impl ModelEvaluation {
     }
 }
 
-#[pyclass(module = "fsrs_rs_python")]
+#[pyclass(module = "fsrs_rs_python", from_py_object)]
 #[derive(Debug, Clone)]
 pub struct MemoryState(fsrs::MemoryState);
 
 #[pymethods]
 impl MemoryState {
+    /// `stability_fast=None` uses `stability`, which matches FSRS-6 semantics.
     #[new]
-    pub fn new(stability: f32, difficulty: f32) -> Self {
+    #[pyo3(signature = (stability, difficulty, stability_fast=None))]
+    pub fn new(stability: f32, difficulty: f32, stability_fast: Option<f32>) -> Self {
         Self(fsrs::MemoryState {
             stability,
             difficulty,
+            stability_fast: stability_fast.unwrap_or(stability),
         })
     }
     #[getter]
@@ -359,12 +473,16 @@ impl MemoryState {
     pub fn difficulty(&self) -> f32 {
         self.0.difficulty
     }
+    #[getter]
+    pub fn stability_fast(&self) -> f32 {
+        self.0.stability_fast
+    }
     pub fn __repr__(&self) -> String {
         format!("{:?}", self.0)
     }
 }
 
-#[pyclass(module = "fsrs_rs_python")]
+#[pyclass(module = "fsrs_rs_python", from_py_object)]
 #[derive(Debug, Clone)]
 pub struct NextStates(fsrs::NextStates);
 #[pymethods]
@@ -387,7 +505,7 @@ impl NextStates {
     }
 }
 
-#[pyclass(module = "fsrs_rs_python")]
+#[pyclass(module = "fsrs_rs_python", from_py_object)]
 #[derive(Debug, Clone)]
 pub struct ItemState(fsrs::ItemState);
 
@@ -406,7 +524,7 @@ impl ItemState {
     }
 }
 
-#[pyclass(module = "fsrs_rs_python")]
+#[pyclass(module = "fsrs_rs_python", from_py_object)]
 #[derive(Debug, Clone)]
 pub struct FSRSItem(fsrs::FSRSItem);
 
@@ -428,26 +546,23 @@ impl FSRSItem {
     }
 
     pub fn long_term_review_cnt(&self) -> usize {
-        self.0
-            .reviews
-            .iter()
-            .filter(|review| review.delta_t > 0)
-            .count()
+        self.0.long_term_review_cnt()
     }
     pub fn __repr__(&self) -> String {
         format!("{:?}", self.0)
     }
 }
 
-#[pyclass(module = "fsrs_rs_python")]
+#[pyclass(module = "fsrs_rs_python", from_py_object)]
 #[derive(Debug, Clone)]
 pub struct FSRSReview(fsrs::FSRSReview);
 
 #[pymethods]
 impl FSRSReview {
     #[new]
-    pub fn new(rating: u32, delta_t: u32) -> Self {
-        Self(fsrs::FSRSReview { rating, delta_t })
+    pub fn new(rating: u32, delta_t: f32) -> PyResult<Self> {
+        let delta_t = validate_days("delta_t", delta_t)?;
+        Ok(Self(fsrs::FSRSReview { rating, delta_t }))
     }
     pub fn __repr__(&self) -> String {
         format!("{:?}", self.0)
@@ -477,10 +592,6 @@ impl SimulationResult {
     #[getter]
     pub fn correct_cnt_per_day(&self) -> Vec<usize> {
         self.0.correct_cnt_per_day.clone()
-    }
-    #[getter]
-    pub fn average_desired_retention(&self) -> Option<f32> {
-        self.0.average_desired_retention
     }
     #[getter]
     pub fn introduced_cnt_per_day(&self) -> Vec<usize> {
@@ -558,6 +669,15 @@ impl Card {
     }
 
     #[getter]
+    pub fn reps(&self) -> u32 {
+        self.0.reps
+    }
+    #[setter]
+    pub fn set_reps(&mut self, value: u32) {
+        self.0.reps = value;
+    }
+
+    #[getter]
     pub fn lapses(&self) -> u32 {
         self.0.lapses
     }
@@ -609,7 +729,6 @@ fn clone_simulation_result(result: &fsrs::SimulationResult) -> fsrs::SimulationR
         review_cnt_per_day: result.review_cnt_per_day.clone(),
         learn_cnt_per_day: result.learn_cnt_per_day.clone(),
         cost_per_day: result.cost_per_day.clone(),
-        average_desired_retention: result.average_desired_retention,
         correct_cnt_per_day: result.correct_cnt_per_day.clone(),
         introduced_cnt_per_day: result.introduced_cnt_per_day.clone(),
         cards: result.cards.clone(),
@@ -690,22 +809,30 @@ fn default_simulator_config() -> SimulatorConfig {
 }
 
 #[pyfunction]
-#[pyo3(signature = (fsrs_items, card_ids=None, enable_short_term=true, num_relearning_steps=None, training_config=None))]
+#[pyo3(signature = (fsrs_items, card_ids=None, enable_short_term=true, num_relearning_steps=None, training_config=None, model_version=None, enable_sched_penalties=false))]
+#[allow(clippy::too_many_arguments)]
 fn evaluate_with_time_series_splits(
     fsrs_items: Vec<FSRSItem>,
     card_ids: Option<Vec<i64>>,
     enable_short_term: bool,
     num_relearning_steps: Option<usize>,
     training_config: Option<&TrainingConfig>,
+    model_version: Option<ModelVersion>,
+    enable_sched_penalties: bool,
 ) -> PyResult<ModelEvaluation> {
-    let training_config = convert_training_config(training_config)?;
+    let model_version = model_version.map_or_else(ComputeParametersVersion::default, Into::into);
+    let training_config = convert_training_config(training_config, model_version)?;
+    let mut train_set: Vec<_> = fsrs_items.into_iter().map(|x| x.0).collect();
+    floor_fsrs6_reviews(model_version, &mut train_set);
 
     fsrs::evaluate_with_time_series_splits(
         ComputeParametersInput {
-            train_set: fsrs_items.into_iter().map(|x| x.0).collect(),
+            train_set,
             card_ids,
             progress: None,
             enable_short_term,
+            enable_sched_penalties,
+            model_version,
             num_relearning_steps,
             training_config,
         },
@@ -753,6 +880,7 @@ fn check_and_fill_parameters(parameters: Vec<f32>) -> PyResult<Vec<f32>> {
 /// A Python module implemented in Rust.
 #[pymodule]
 fn fsrs_rs_python(m: &Bound<'_, PyModule>) -> PyResult<()> {
+    m.add_class::<ModelVersion>()?;
     m.add_class::<FSRS>()?;
     m.add_class::<TrainingConfig>()?;
     m.add_class::<ModelEvaluation>()?;
@@ -771,5 +899,9 @@ fn fsrs_rs_python(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(filter_outlier, m)?)?;
     m.add_function(wrap_pyfunction!(check_and_fill_parameters, m)?)?;
     m.add("DEFAULT_PARAMETERS", fsrs::DEFAULT_PARAMETERS.to_vec())?;
+    m.add(
+        "FSRS6_DEFAULT_PARAMETERS",
+        fsrs::FSRS6_DEFAULT_PARAMETERS.to_vec(),
+    )?;
     Ok(())
 }

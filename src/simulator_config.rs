@@ -8,6 +8,7 @@ pub struct SimulatorConfig(pub fsrs::SimulatorConfig);
 impl SimulatorConfig {
     // Constructor for the wrapper struct
     #[new]
+    #[allow(clippy::too_many_arguments)]
     #[pyo3(signature = (deck_size, learn_span, max_cost_perday, max_ivl, first_rating_prob, review_rating_prob, learn_limit, review_limit, new_cards_ignore_review_limit, learning_step_transitions, relearning_step_transitions, state_rating_costs, learning_step_count, relearning_step_count, suspend_after_lapses=None))]
     pub fn new(
         deck_size: usize,
@@ -39,6 +40,7 @@ impl SimulatorConfig {
             suspend_after_lapses,
             post_scheduling_fn: None,
             review_priority_fn: None,
+            review_rating_cost_fn: None,
             learning_step_transitions,
             relearning_step_transitions,
             state_rating_costs,
