@@ -15,11 +15,13 @@ def main():
     )
     print(f"{len(fsrs_items) = }")
 
-    # Create an FSRS instance with default parameters
+    # Create an FSRS instance with default parameters (FSRS-7)
     fsrs = FSRS(parameters=DEFAULT_PARAMETERS)
+    print(f"{fsrs.model_version = }")
     print(f"{DEFAULT_PARAMETERS = }")
 
-    # Optimize the FSRS model using the created items
+    # Optimize the FSRS model using the created items.
+    # The optimized parameters use the instance's model version unless `model_version` is passed.
     optimized_parameters = fsrs.compute_parameters(fsrs_items)
     print(f"{optimized_parameters = }")
 

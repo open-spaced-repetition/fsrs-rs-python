@@ -1,7 +1,7 @@
 import datetime
-from typing import Optional
+from typing import Optional, Sequence
 
-from fsrs_rs_python import DEFAULT_PARAMETERS, FSRS, MemoryState
+from fsrs_rs_python import DEFAULT_PARAMETERS, FSRS, FSRS6_DEFAULT_PARAMETERS, MemoryState
 
 
 class Card:
@@ -45,11 +45,13 @@ def schedule_new_card():
     print(f"Memory state: {card.memory_state}")
 
 
-def schedule_existing_card():
+def schedule_existing_card(parameters: Sequence[float]):
     # Create an existing card with memory state and last review date
     card = Card()
     card.due = datetime.datetime.now(datetime.timezone.utc)
-    card.last_review = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(days=7)
+    card.last_review = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(
+        days=7, hours=18
+    )
     card.memory_state = MemoryState(stability=7.0, difficulty=5.0)
     card.scheduled_days = 7
 
@@ -57,10 +59,13 @@ def schedule_existing_card():
     desired_retention = 0.9
 
     # Create a new FSRS model
-    fsrs = FSRS(parameters=DEFAULT_PARAMETERS)
+    fsrs = FSRS(parameters=parameters)
 
-    # Calculate the elapsed time since the last review
-    elapsed_days = (datetime.datetime.now(datetime.timezone.utc) - card.last_review).days
+    # Calculate the elapsed time since the last review.
+    # Pass fractional days; the binding uses whole days for FSRS-6 and fractional days for FSRS-7.
+    elapsed = datetime.datetime.now(datetime.timezone.utc) - card.last_review
+    elapsed_days = elapsed.total_seconds() / 86400
+    print(f"Model version: {fsrs.model_version}")
 
     # Get next states for an existing card
     next_states = fsrs.next_states(card.memory_state, desired_retention, elapsed_days)
@@ -89,5 +94,6 @@ if __name__ == "__main__":
     print("Scheduling a new card:")
     schedule_new_card()
 
-    print("\nScheduling an existing card:")
-    schedule_existing_card()
+    for parameters in (DEFAULT_PARAMETERS, FSRS6_DEFAULT_PARAMETERS):
+        print("\nScheduling an existing card:")
+        schedule_existing_card(parameters)

@@ -1,14 +1,37 @@
-from typing import Callable, List, Optional, Sequence
+from typing import Callable, ClassVar, List, Optional, Sequence
+
+class ModelVersion:
+    """The FSRS algorithm version.
+
+    fsrs selects it from the parameter count: 17, 19 or 21 parameters are FSRS-6;
+    34 parameters (or none) are FSRS-7.
+    """
+
+    FSRS6: ClassVar[ModelVersion]
+    FSRS7: ClassVar[ModelVersion]
 
 class FSRS:
     ...
     def __init__(self, parameters: Sequence[float]) -> None: ...
+    @property
+    def model_version(self) -> ModelVersion: ...
     def next_states(
         self,
         current_memory_state: Optional[MemoryState],
         desired_retention: float,
-        days_elapsed: int,
-    ) -> NextStates: ...
+        days_elapsed: float,
+    ) -> NextStates:
+        """`days_elapsed` must be finite and non-negative, otherwise `ValueError` is raised.
+
+        Pass fractional days (e.g. `timedelta.total_seconds() / 86400`): FSRS-6 floors them to
+        whole days (same-day reviews count as 0), FSRS-7 uses them as-is.
+        """
+    def current_retrievability(self, state: MemoryState, days_elapsed: float) -> float:
+        """`days_elapsed` must be finite and non-negative, otherwise `ValueError` is raised.
+
+        Pass fractional days (e.g. `timedelta.total_seconds() / 86400`): FSRS-6 floors them to
+        whole days (same-day reviews count as 0), FSRS-7 uses them as-is.
+        """
     def next_interval(
         self,
         stability: Optional[float],
@@ -22,7 +45,18 @@ class FSRS:
         enable_short_term: bool = True,
         num_relearning_steps: Optional[int] = None,
         training_config: Optional[TrainingConfig] = None,
-    ) -> List[float]: ...
+        model_version: Optional[ModelVersion] = None,
+        enable_sched_penalties: bool = False,
+    ) -> List[float]:
+        """Train parameters for `model_version`.
+
+        `model_version=None` uses this instance's version. `training_config=None` uses the
+        version's defaults: FSRS-6 trains 5 epochs, learning rate 0.04, max_seq_len 256
+        (unchanged from 0.9.x); FSRS-7 trains 9 epochs, learning rate 0.0118, max_seq_len 1024.
+
+        Review `delta_t`s: FSRS-6 floors them to whole days (same-day reviews count as 0),
+        FSRS-7 uses them as-is.
+        """
     def benchmark(
         self,
         fsrs_items: Sequence[FSRSItem],
@@ -30,7 +64,18 @@ class FSRS:
         enable_short_term: bool = True,
         num_relearning_steps: Optional[int] = None,
         training_config: Optional[TrainingConfig] = None,
-    ) -> List[float]: ...
+        model_version: Optional[ModelVersion] = None,
+        enable_sched_penalties: bool = False,
+    ) -> List[float]:
+        """Benchmark training for `model_version`.
+
+        `model_version=None` uses this instance's version. `training_config=None` uses the
+        version's defaults: FSRS-6 trains 5 epochs, learning rate 0.04, max_seq_len 256
+        (unchanged from 0.9.x); FSRS-7 trains 9 epochs, learning rate 0.0118, max_seq_len 64.
+
+        Review `delta_t`s: FSRS-6 floors them to whole days (same-day reviews count as 0),
+        FSRS-7 uses them as-is.
+        """
     def memory_state_from_sm2(
         self, ease_factor: float, interval: float, sm2_retention: float
     ) -> MemoryState: ...
@@ -53,6 +98,13 @@ class FSRS:
     def evaluate(self, fsrs_items: Sequence[FSRSItem]) -> ModelEvaluation: ...
 
 class TrainingConfig:
+    """Training hyperparameters.
+
+    `num_epochs=0` and `learning_rate=0.0` mean the model version's default
+    (FSRS-7: 9 epochs and 0.0118; FSRS-6: 5 epochs and 0.04). `TrainingConfig()` uses
+    max_seq_len 256 for both versions.
+    """
+
     num_epochs: int
     batch_size: int
     seed: int
@@ -61,10 +113,10 @@ class TrainingConfig:
     gamma: float
     def __init__(
         self,
-        num_epochs: int = 5,
+        num_epochs: int = 0,
         batch_size: int = 512,
         seed: int = 2023,
-        learning_rate: float = 4e-2,
+        learning_rate: float = 0.0,
         max_seq_len: int = 256,
         gamma: float = 1.0,
     ) -> None: ...
@@ -81,12 +133,21 @@ class FSRSItem:
 
 class FSRSReview:
     ...
-    def __init__(self, rating: int, delta_t: int) -> None: ...
+    def __init__(self, rating: int, delta_t: float) -> None:
+        """`delta_t` is in days and must be finite and non-negative, otherwise `ValueError`.
+
+        Pass fractional days; the review stores them as given. On FSRS-6 paths the binding
+        floors them to whole days (same-day reviews count as 0); FSRS-7 uses them as-is.
+        """
 
 class MemoryState:
-    def __init__(self, stability: float, difficulty: float) -> None: ...
+    def __init__(
+        self, stability: float, difficulty: float, stability_fast: Optional[float] = None
+    ) -> None:
+        """`stability_fast=None` uses `stability`, which matches FSRS-6 semantics."""
     stability: float
     difficulty: float
+    stability_fast: float
 
 class NextStates:
     hard: ItemState
@@ -104,7 +165,6 @@ class SimulationResult:
     learn_cnt_per_day: list[int]
     cost_per_day: list[float]
     correct_cnt_per_day: list[int]
-    average_desired_retention: Optional[float]
     introduced_cnt_per_day: list[int]
     cards: List[Card]
 
@@ -115,6 +175,7 @@ class Card:
     last_date: float
     due: float
     interval: float
+    reps: int
     lapses: int
     desired_retention: float
     parameters: List[float]
@@ -177,7 +238,17 @@ def evaluate_with_time_series_splits(
     enable_short_term: bool = True,
     num_relearning_steps: Optional[int] = None,
     training_config: Optional[TrainingConfig] = None,
-) -> ModelEvaluation: ...
+    model_version: Optional[ModelVersion] = None,
+    enable_sched_penalties: bool = False,
+) -> ModelEvaluation:
+    """`model_version=None` means FSRS-7. `training_config=None` uses the version's defaults:
+    FSRS-6 trains 5 epochs, learning rate 0.04, max_seq_len 256 (unchanged from 0.9.x);
+    FSRS-7 trains 9 epochs, learning rate 0.0118, max_seq_len 1024.
+
+    Review `delta_t`s: FSRS-6 floors them to whole days (same-day reviews count as 0),
+    FSRS-7 uses them as-is.
+    """
+
 def filter_outlier(
     dataset_for_initialization: Sequence[FSRSItem],
     trainset: Sequence[FSRSItem],
@@ -185,3 +256,6 @@ def filter_outlier(
 def check_and_fill_parameters(parameters: Sequence[float]) -> List[float]: ...
 
 DEFAULT_PARAMETERS: List[float]
+"""FSRS-7 default parameters (34 values)."""
+FSRS6_DEFAULT_PARAMETERS: List[float]
+"""FSRS-6 default parameters (21 values)."""
